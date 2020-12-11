@@ -45,10 +45,9 @@ class ItemScraper
     
     # img2以降が存在しなかったらnil生成
     1.upto(4) { |num| files['img' + num.to_s] ||= nil }
-    pp files
     files
   end
-  def self.download(browser, items = [])
+  def self.download(browser)
     RakumaBrowser.goto_sell(browser)
 #    puts 'リストを最後まで展開したらOKしてください。'
 #    RakumaBrowser.wait_dialog(browser)
@@ -59,6 +58,7 @@ class ItemScraper
       imgs_page_url = target.div(class: 'row').a.href
       props = self.props_scrape(browser, props_url: edit_page_url)
       crops = self.crops_scrape(browser, imgs_url: imgs_page_url)
+      puts props['name'] + 'のデータを取得しました。'
       props.merge(crops)
     end
   end

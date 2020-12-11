@@ -14,21 +14,20 @@ class ItemRegister
     match_index(scan_id_array, id)
   end
 
-  def self.exe_query_selector(browser, input_or_select, item_key, item)
-    # puts 'javascript実行: ' + input_or_select + ' ' + item_key + ' ' + "#{item[item_key]}"
-    browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
-  end
-  
   def self.delete(browser, item)
     idx = self.find_scroll_locate(browser, item)
-    $main.wait_a_minute(browser, 'dele')
     if idx
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
+      $main.wait_a_minute(browser, 'dele')
       browser.alert.wait_until(&:present?).ok
     end
     idx
   end
 
+  def self.exe_query_selector(browser, input_or_select, item_key, item)
+    browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
+  end
+  
   def self.regist(browser, item)
     img_files = item.find_all do |key, value|
       key.include?('img')
@@ -98,6 +97,7 @@ class ItemRegister
         puts item['name'] + 'の削除を試みましたがリストにないため削除に失敗しました。'
       end
       RakumaBrowser.goto_new(browser)
+      puts item['name'] + 'の再出品を行います。'
       self.regist(browser, item)
       puts item['name'] + 'の再出品が完了しました。'
     end
