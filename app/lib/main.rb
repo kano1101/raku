@@ -7,7 +7,7 @@ class Main
     random = Random.new()
     time = random.rand(@wait_sec[scene]['min']..@wait_sec[scene]['max'])
     puts '待ち:' + time.to_s + '秒' # if 10.0 < time
-    browser.wait_until(timeout: time)
+    sleep time
   end
   def initialize
     puts '設定ファイルを読み込みます。'

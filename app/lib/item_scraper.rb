@@ -44,7 +44,8 @@ class ItemScraper
     end.to_h
     
     # img2以降が存在しなかったらnil生成
-    4.times.each.with_index(1) { |num| files['img' + num.to_s] ||= nil }
+    1.upto(4) { |num| files['img' + num.to_s] ||= nil }
+    pp files
     files
   end
   def self.download(browser, items = [])
