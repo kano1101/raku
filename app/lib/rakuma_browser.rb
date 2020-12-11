@@ -14,7 +14,6 @@ class RakumaBrowser
   def self.goto_url(browser, url)
     browser.goto(url)
     browser.wait
-    $main.wait_a_minute('goto')
   end
   
   def self.goto_mypage(browser)
