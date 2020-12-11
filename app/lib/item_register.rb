@@ -14,20 +14,20 @@ class ItemRegister
     match_index(scan_id_array, id)
   end
 
-  def self.exe_query_selector(browser, input_or_select, item_key, item)
-    browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
-  end
-  
   def self.delete(browser, item)
     idx = self.find_scroll_locate(browser, item)
-    $main.wait_a_minute(browser, 'dele')
     if idx
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
+      $main.wait_a_minute(browser, 'dele')
       browser.alert.wait_until(&:present?).ok
     end
     idx
   end
 
+  def self.exe_query_selector(browser, input_or_select, item_key, item)
+    browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
+  end
+  
   def self.regist(browser, item)
     img_files = item.find_all do |key, value|
       key.include?('img')
@@ -42,7 +42,7 @@ class ItemRegister
     browser.input(:id => 'name').send_keys(item['name']) # name
     browser.textarea(:id => 'detail').send_keys(item['detail']) # detail
     # parent_category_id
-    browser.execute_script(%!document.querySelector('input[name="item[category_id]"]').value='%s'! % item['category_id']) # category_id
+    self.exe_query_selector(browser, 'input', 'category_id', item)
     unless item['size_id'] == 19999 # size_id
       browser.execute_script <<~JS
         function make_hidden(name, value) {
@@ -55,18 +55,18 @@ class ItemRegister
         }
         make_hidden('item[size_id]', '#{item['size_id']}');
       JS
+      self.exe_query_selector(browser, 'input', 'size_id', item)
     end
-    browser.execute_script(%!document.querySelector('input[name="item[size_id]"]').value='%s'! % item['size_id']) # size_id
-    browser.execute_script(%!document.querySelector('input[name="item[brand_id]"]').value='%s'! % item['brand_id']) # brand_id
+    self.exe_query_selector(browser, 'input', 'brand_id', item)
     # informal_brand_id
-    browser.execute_script(%!document.querySelector('select[name="item[status]"]').value='%s'! % item['status']) # status
+    self.exe_query_selector(browser, 'select', 'status', item)
     # origin_price
-    browser.execute_script(%!document.querySelector('input[name="item[sell_price]"]').value='%s'! % item['sell_price']) # sell_price
+    self.exe_query_selector(browser, 'input', 'sell_price', item)
     # transaction_status
-    browser.execute_script(%!document.querySelector('select[name="item[carriage]"]').value='%s'! % item['carriage']) # carriage
-    browser.execute_script(%!document.querySelector('input[name="item[delivery_method]"]').value='%s'! % item['delivery_method']) # delivery_method
-    browser.execute_script(%!document.querySelector('select[name="item[delivery_date]"]').value='%s'! % item['delivery_date']) # delivery_date
-    browser.execute_script(%!document.querySelector('select[name="item[delivery_area]"]').value='%s'! % item['delivery_area']) # delivery_area
+    self.exe_query_selector(browser, 'select', 'carriage', item)
+    self.exe_query_selector(browser, 'input', 'delivery_method', item)
+    self.exe_query_selector(browser, 'select', 'delivery_date', item)
+    self.exe_query_selector(browser, 'select', 'delivery_area', item)
     # open_flag
     # sold_out_flag
     # created_at
@@ -76,12 +76,15 @@ class ItemRegister
     browser.execute_script(%!document.getElementById('brand_name').innerText = "#{item['brand_name']}"!) # brand_name
     # delivery_method_name
     # related_size_group_ids
-    browser.execute_script(%!document.querySelector('select[name="item[request_required]"]').value='%s'! % item['request_required']) # request_required
+    self.exe_query_selector(browser, 'select', 'request_required', item)
     
     $main.wait_a_minute(browser, 'list')
     browser.button(:id => 'confirm').click
+    browser.wait_while { |b| b.button(:id => 'confirm').present? }
+    
     $main.wait_a_minute(browser, 'othr')
     browser.button(:id => 'submit').click
+    browser.wait_while { |b| b.button(:id => 'submit').present? }
   end
   
   def self.relist(browser, items)
@@ -89,12 +92,14 @@ class ItemRegister
       puts item['name'] + 'の再出品のための削除を行います。'
       RakumaBrowser.goto_sell(browser)
       if self.delete(browser, item)
-        RakumaBrowser.goto_new(browser)
-        self.regist(browser, item)
-        puts item['name'] + 'の再出品が完了しました。'
-      elsif
-        puts item['name'] + 'の削除を試みましたがリストにないため失敗しました。'
+        puts item['name'] + 'を削除しました。'
+      else
+        puts item['name'] + 'の削除を試みましたがリストにないため削除に失敗しました。'
       end
+      RakumaBrowser.goto_new(browser)
+      puts item['name'] + 'の再出品を行います。'
+      self.regist(browser, item)
+      puts item['name'] + 'の再出品が完了しました。'
     end
   end
 end
