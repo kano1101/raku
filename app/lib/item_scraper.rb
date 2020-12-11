@@ -4,6 +4,9 @@ require 'open-uri'
 require_relative 'rakuma_browser'
 
 class ItemScraper
+  
+  SAVE_DIR = 'saved_img/'
+  
   def self.to_hash(str)
     JSON.parse(str)
   end
@@ -16,49 +19,46 @@ class ItemScraper
     end
     file
   end
-  def self.scrape(browser, props_url:)
+  
+  def self.props_scrape(browser, props_url:)
     RakumaBrowser.goto_url_by_new_tab(browser, props_url)
     browser.html =~ /data-react-props="(.+?)"/
     plane = $1
     plane.gsub!('&quot;', '"')
-    $main.wait_a_minute('prop')
-    RakumaBrowser.close_last_tab(browser)
+   RakumaBrowser.close_last_tab(browser)
     self.to_hash(plane)['item']
   end
-  def self.crops(browser, imgs_url:)
+  
+  def self.crops_scrape(browser, imgs_url:)
     RakumaBrowser.goto_url_by_new_tab(browser, imgs_url)
-    img_urls = []
-    count = browser.imgs(class: 'sp-image').count
-    for idx in 0...count do
-      img_urls << browser.img(class: 'sp-image', index: idx).src
+    img_urls = browser.imgs(class: 'sp-image').count.times.map do |idx|
+      browser.img(class: 'sp-image', index: idx).src
     end
-    save_dir = 'saved_img/'
-    FileUtils.mkdir_p(save_dir) unless File.exists?(save_dir)
-    files = img_urls.map do |url|
-      self.save_with(dir: save_dir, file: url[/(\d+.\w+.)\?/, 1], url: url)
-    end.map.with_index(1) do |file_name, index|
-      ['img' + index.to_s, file_name]
-    end.to_h
-    1.upto(4) { |n| files['img' + n.to_s] ||= nil }
-    $main.wait_a_minute('imgs')
     RakumaBrowser.close_last_tab(browser)
-    files.to_h
+    
+    FileUtils.mkdir_p(save_dir) unless File.exists?(SAVE_DIR)
+    files = img_urls.map do |url|
+      self.save_with(dir: SAVE_DIR, file: url[/(\d+.\w+.)\?/, 1], url: url)
+    end.map.with_index(1) do |fnm, num| # img(n)のnは1始まり
+      ['img' + num.to_s, fnm]
+    end.to_h
+    
+    # img2以降が存在しなかったらnil生成
+    4.times.each.with_index(1) { |num| files['img' + num.to_s] ||= nil }
+    files
   end
   def self.download(browser, items = [])
     RakumaBrowser.goto_sell(browser)
 #    puts 'リストを最後まで展開したらOKしてください。'
 #    RakumaBrowser.wait_dialog(browser)
-    page_item_count = browser.divs(class: 'media').count
-    for idx in 0..(page_item_count - 1)
-      browser.div(class: 'media', index: idx).scroll.to
-      edit_page_url = browser.div(class: 'media', index: idx).a(class: ['btn', 'btn-default'], index: 0).href
-      imgs_page_url = browser.div(class: 'media', index: idx).div(class: 'row').a.href
-      props = self.scrape(browser, props_url: edit_page_url)
-      crops = self.crops(browser, imgs_url: imgs_page_url)
-      updtd = { 'site_updated' => true }
-      item = props.merge(crops).merge(updtd)
-      items << item
+    browser.divs(class: 'media').count.times.map do |idx|
+      target = browser.div(class: 'media', index: idx)
+      target.scroll.to
+      edit_page_url = target.a(class: ['btn', 'btn-default'], index: 0).href
+      imgs_page_url = target.div(class: 'row').a.href
+      props = self.props_scrape(browser, props_url: edit_page_url)
+      crops = self.crops_scrape(browser, imgs_url: imgs_page_url)
+      props.merge(crops)
     end
-    items
   end
 end

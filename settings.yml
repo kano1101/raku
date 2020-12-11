@@ -1,19 +1,10 @@
 delay:
-  goto:
-    min: 0.0
-    max: 0.0
   dele:
     min: 2.0
     max: 4.0
   list:
     min: 12.0
     max: 24.0
-  prop:
-    min: 0.0
-    max: 0.0
-  imgs:
-    min: 0.0
-    max: 0.0
   othr:
     min: 5.0
     max: 10.0

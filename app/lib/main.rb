@@ -3,14 +3,11 @@ require 'watir'
 require_relative 'flow'
 
 class Main
-  def wait_a_minute(type_symbol)
+  def wait_a_minute(browser, scene)
     random = Random.new()
-    time = random.rand(@wait_sec[type_symbol][:min]..@wait_sec[type_symbol][:max])
-    puts '待ち:' + time.to_s + '秒' if 10.0 < time
-    # begin
-    browser.wait_until(time)
-    # rescue Watir::Wait::TimeoutError
-    # end
+    time = random.rand(@wait_sec[scene]['min']..@wait_sec[scene]['max'])
+    puts '待ち:' + time.to_s + '秒' # if 10.0 < time
+    browser.wait_until(timeout: time)
   end
   def initialize
     puts '設定ファイルを読み込みます。'
@@ -18,16 +15,6 @@ class Main
     @wait_sec = set['delay'].map do |scene_key, min_max_hash|
       [scene_key, min_max_hash]
     end.to_h
-    # binding.pry
-    # @wait_sec = {
-    #   goto: { min: set['delay']['goto']['min'], max: set['delay']['goto']['max'] },
-    #   dele: { min: set['delay']['dele']['min'], max: set['delay']['dele']['max'] },
-    #   list: { min: set['delay']['list']['min'], max: set['delay']['list']['max'] },
-    #   prop: { min: set['delay']['prop']['min'], max: set['delay']['prop']['max'] },
-    #   imgs: { min: set['delay']['imgs']['min'], max: set['delay']['imgs']['max'] },
-    #   othr: { min: set['delay']['othr']['min'], max: set['delay']['othr']['max'] },
-    # }
-    pp @wait_sec
   end
   
   def main
