@@ -89,7 +89,7 @@ class ItemRegister
   
   def self.relist(browser, items)
     items.reverse.each do |item|
-      puts item['name'] + 'の再出品のための削除を行います。'
+#      puts item['name'] + 'の再出品のための削除を行います。'
       RakumaBrowser.goto_sell(browser)
       if self.delete(browser, item)
         puts item['name'] + 'を削除しました。'
