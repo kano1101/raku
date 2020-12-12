@@ -6,8 +6,8 @@ class Main
   def wait_a_minute(browser, scene)
     random = Random.new()
     time = random.rand(@wait_sec[scene]['min']..@wait_sec[scene]['max'])
-    puts '待ち:' + time.to_s + '秒' # if 10.0 < time
-    sleep time
+    # puts '待ち:' + time.to_s + '秒' # if 10.0 < time
+    browser.wait_until(timeout: time)
   end
   def initialize
     puts '設定ファイルを読み込みます。'
