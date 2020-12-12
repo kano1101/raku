@@ -8,3 +8,6 @@ delay:
   othr:
     min: 5.0
     max: 10.0
+
+download:
+  y

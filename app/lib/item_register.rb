@@ -11,15 +11,18 @@ class ItemRegister
   def self.find_scroll_locate(browser, item)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
+    p scan_id_array
+    p id
     match_index(scan_id_array, id)
   end
 
   def self.delete(browser, item)
     idx = self.find_scroll_locate(browser, item)
     if idx
+#      $main.wait_a_minute(browser, 'dele')
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-      $main.wait_a_minute(browser, 'dele')
       browser.alert.wait_until(&:present?).ok
+      browser.wait
     end
     idx
   end
@@ -97,7 +100,6 @@ class ItemRegister
         puts item['name'] + 'の削除を試みましたがリストにないため削除に失敗しました。'
       end
       RakumaBrowser.goto_new(browser)
-      puts item['name'] + 'の再出品を行います。'
       self.regist(browser, item)
       puts item['name'] + 'の再出品が完了しました。'
     end
