@@ -49,8 +49,8 @@ class ItemScraper
   end
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-#    puts 'リストを最後まで展開したらOKしてください。'
-#    RakumaBrowser.wait_dialog(browser)
+    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
+    gets
     browser.divs(class: 'media').count.times.map do |idx|
       target = browser.div(class: 'media', index: idx)
       target.scroll.to
