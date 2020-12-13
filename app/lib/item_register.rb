@@ -17,9 +17,10 @@ class ItemRegister
   def self.delete(browser, item)
     idx = self.find_scroll_locate(browser, item)
     if idx
+#      $main.wait_a_minute(browser, 'dele')
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-      $main.wait_a_minute(browser, 'dele')
       browser.alert.wait_until(&:present?).ok
+      browser.wait
     end
     idx
   end
@@ -93,13 +94,12 @@ class ItemRegister
       RakumaBrowser.goto_sell(browser)
       if self.delete(browser, item)
         puts item['name'] + 'を削除しました。'
+        RakumaBrowser.goto_new(browser)
+        self.regist(browser, item)
+        puts item['name'] + 'の再出品が完了しました。'
       else
         puts item['name'] + 'の削除を試みましたがリストにないため削除に失敗しました。'
       end
-      RakumaBrowser.goto_new(browser)
-      puts item['name'] + 'の再出品を行います。'
-      self.regist(browser, item)
-      puts item['name'] + 'の再出品が完了しました。'
     end
   end
 end
