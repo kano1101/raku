@@ -6,9 +6,9 @@ class Main
   def wait_a_minute(browser, scene)
     random = Random.new()
     time = random.rand(@wait_sec[scene]['min']..@wait_sec[scene]['max'])
-    # puts '待ち:' + time.to_s + '秒' # if 10.0 < time
-    browser.wait(time.to_i)
-    # sleep time
+    puts '待ち:' + time.to_i.to_s + '秒' # if 10.0 < time
+    #browser.wait_until(timeout: time)
+    sleep time
   end
   def initialize
     set = YAML.load_file('settings.yml')

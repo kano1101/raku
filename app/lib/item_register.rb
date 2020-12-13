@@ -11,8 +11,6 @@ class ItemRegister
   def self.find_scroll_locate(browser, item)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
-    p scan_id_array
-    p id
     match_index(scan_id_array, id)
   end
 
@@ -96,12 +94,12 @@ class ItemRegister
       RakumaBrowser.goto_sell(browser)
       if self.delete(browser, item)
         puts item['name'] + 'を削除しました。'
+        RakumaBrowser.goto_new(browser)
+        self.regist(browser, item)
+        puts item['name'] + 'の再出品が完了しました。'
       else
         puts item['name'] + 'の削除を試みましたがリストにないため削除に失敗しました。'
       end
-      RakumaBrowser.goto_new(browser)
-      self.regist(browser, item)
-      puts item['name'] + 'の再出品が完了しました。'
     end
   end
 end
