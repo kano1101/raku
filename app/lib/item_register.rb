@@ -82,15 +82,16 @@ class ItemRegister
     $main.wait_a_minute(browser, 'list', item)
     browser.button(:id => 'confirm').click
     browser.wait_while { |b| b.button(:id => 'confirm').present? }
+    browser.wait
     
     $main.wait_a_minute(browser, 'othr', item)
     browser.button(:id => 'submit').click
     browser.wait_while { |b| b.button(:id => 'submit').present? }
+    browser.wait
   end
   
   def self.relist(browser, items)
     items.each do |item|
-#      puts item['name'] + 'の再出品のための削除を行います。'
       RakumaBrowser.goto_sell(browser)
       if self.delete(browser, item)
         puts item['name'] + 'を削除しました。'

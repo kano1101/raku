@@ -22,7 +22,7 @@ class Scheduler
   end
   def self.print_schedule(items)
     items.each do |item|
-      puts '出品完了予定時刻 : ' + item['othr'].strftime('%H:%M:%S') + ' ' + '商品[' + item['name'] + ']'
+      puts '出品完了予定時刻' + ' : ' + item['othr'].strftime('%H:%M:%S') + ' : ' + '商品[' + item['name'] + ']'
     end
   end
 end

@@ -70,9 +70,4 @@ class RakumaBrowser
   def self.close_last_tab(browser)
     browser.windows.last.close
   end
-
-#  def self.wait_dialog(browser)
-    # dialog = Watir::Dialog new
-    # wait_while(browser) { || dialog.present? }
-#  end
 end
