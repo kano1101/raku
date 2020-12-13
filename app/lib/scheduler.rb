@@ -8,7 +8,7 @@ class Scheduler
     items.inject(now) do |start_time, item|
       schedule = {}
       required = {}
-      scene_keys = ['dele', 'list', 'othr']
+      scene_keys = ['relist', 'submit']
       scene_keys.each do |key|
         required[key] = $main.make_wait_time(key).to_i
       end
@@ -22,7 +22,7 @@ class Scheduler
   end
   def self.print_schedule(items)
     items.each do |item|
-      puts '出品完了予定時刻' + ' : ' + item['othr'].strftime('%H:%M:%S') + ' : ' + '商品[' + item['name'] + ']'
+      puts '出品完了予定時刻' + ' : ' + item['submit'].strftime('%H:%M:%S') + ' : ' + '商品[' + item['name'] + ']'
     end
   end
 end
