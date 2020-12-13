@@ -4,6 +4,7 @@ require_relative 'rakuma_browser'
 require_relative 'item_scraper'
 require_relative 'item_register'
 require_relative 'csv_writer'
+require_relative 'scheduler'
 
 class Flow
   def self.download_and_generate_csv
@@ -17,8 +18,11 @@ class Flow
   end
 
   def self.restore_csv_and_relist
-    items = CsvWriter.restore_csv
+    items = CsvWriter.restore_csv.reverse
     puts 'CSVファイルを読み込みました。'
+    items = Scheduler.add_schedule(items)
+    Scheduler.print_schedule(items)
+    puts 'スケジューリングを行いました。'
     browser = RakumaBrowser.start_up
     ItemRegister.relist(browser, items)
     puts 'すべて再出品が完了しました。'
