@@ -17,7 +17,7 @@ class ItemRegister
   def self.delete(browser, item)
     idx = self.find_scroll_locate(browser, item)
     if idx
-#      $main.wait_a_minute(browser, 'dele')
+      $main.wait_a_minute(browser, 'dele', item)
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
       browser.alert.wait_until(&:present?).ok
       browser.wait
@@ -79,17 +79,17 @@ class ItemRegister
     # related_size_group_ids
     self.exe_query_selector(browser, 'select', 'request_required', item)
     
-    $main.wait_a_minute(browser, 'list')
+    $main.wait_a_minute(browser, 'list', item)
     browser.button(:id => 'confirm').click
     browser.wait_while { |b| b.button(:id => 'confirm').present? }
     
-    $main.wait_a_minute(browser, 'othr')
+    $main.wait_a_minute(browser, 'othr', item)
     browser.button(:id => 'submit').click
     browser.wait_while { |b| b.button(:id => 'submit').present? }
   end
   
   def self.relist(browser, items)
-    items.reverse.each do |item|
+    items.each do |item|
 #      puts item['name'] + 'の再出品のための削除を行います。'
       RakumaBrowser.goto_sell(browser)
       if self.delete(browser, item)
