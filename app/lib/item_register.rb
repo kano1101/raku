@@ -14,10 +14,8 @@ class ItemRegister
     match_index(scan_id_array, id)
   end
 
-  def self.delete(browser, item)
-    idx = self.find_scroll_locate(browser, item)
+  def self.delete(browser, item, idx)
     if idx
-      $main.wait_a_minute(browser, 'dele', item)
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
       browser.alert.wait_until(&:present?).ok
       browser.wait
@@ -79,12 +77,12 @@ class ItemRegister
     # related_size_group_ids
     self.exe_query_selector(browser, 'select', 'request_required', item)
     
-    $main.wait_a_minute(browser, 'list', item)
+    $main.wait_a_minute(browser, 'relist', item)
     browser.button(:id => 'confirm').click
     browser.wait_while { |b| b.button(:id => 'confirm').present? }
     browser.wait
     
-    $main.wait_a_minute(browser, 'othr', item)
+    $main.wait_a_minute(browser, 'submit', item)
     browser.button(:id => 'submit').click
     browser.wait_while { |b| b.button(:id => 'submit').present? }
     browser.wait
@@ -93,13 +91,15 @@ class ItemRegister
   def self.relist(browser, items)
     items.each do |item|
       RakumaBrowser.goto_sell(browser)
-      if self.delete(browser, item)
-        puts item['name'] + 'を削除しました。'
+      idx = self.find_scroll_locate(browser, item)
+      if idx
         RakumaBrowser.goto_new(browser)
-        self.regist(browser, item)
-        puts item['name'] + 'の再出品が完了しました。'
+        self.regist(browser, item); idx += 1;
+        RakumaBrowser.goto_sell(browser)
+        self.delete(browser, item, idx)
+        puts item['name'] + 'の出品と削除が完了しました。'
       else
-        puts item['name'] + 'の削除を試みましたがリストにないため削除に失敗しました。'
+        puts item['name'] + 'の再出品を試みましたがリストにないため失敗しました。'
       end
     end
   end

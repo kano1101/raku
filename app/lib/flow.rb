@@ -11,6 +11,7 @@ class Flow
     browser = RakumaBrowser.start_up
     puts '出品中データの取得を開始します。'
     items = ItemScraper.download(browser)
+    puts "全#{items.count}商品が見つかりました。"
     puts '出品中データの取得が完了しました。'
     RakumaBrowser.exit(browser)
     CsvWriter.generate_csv(items)

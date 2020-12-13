@@ -23,16 +23,16 @@ class Main
   def main
     # print 'ラクマページよりCSVへとデータを落しますか？ (\'y\' or other) : '
     # do_or_not_download = gets.chomp
-    puts 'プログラムを開始しました。'
     Flow.download_and_generate_csv if @do_or_not_download == 'y'
     Flow.restore_csv_and_relist
-    puts 'CSVファイル分の再出品が完了しました。'
   end
 
   def self.run
     unless $main
+    puts 'プログラムを開始しました。'
       $main = Main.new
       $main.main
+    puts 'プログラムを終了します。'
     end
   end
 end

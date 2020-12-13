@@ -1,11 +1,8 @@
 delay:
-  dele:
-    min: 2.0
-    max: 4.0
-  list:
+  relist:
     min: 12.0
     max: 24.0
-  othr:
+  submit:
     min: 5.0
     max: 10.0
 
