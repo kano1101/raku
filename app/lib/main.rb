@@ -7,9 +7,33 @@ class Main
     random = Random.new()
     random.rand(@wait_sec[scene]['min']..@wait_sec[scene]['max'])
   end
-  def wait_a_minute(browser, scene, item)
+  def getch
+    system("stty raw -echo")
+    char = STDIN.read_nonblock(1) rescue nil
+    system("stty -raw echo")
+    print char
+    char
+  end
+  def initialize
+    @is_finishing = false
+  end
+
+  private
+  def finish_program
+    @is_finishing = true
+  end
+  public
+
+  attr_reader :is_finishing
+  
+  def wait_a_minute(scene, item)
     time = item[scene]
-    browser.wait_until(timeout: 600) { Time.now >= time }
+    loop do
+      sleep(1)
+      if getch then finish_program end
+      if self.is_finishing then break end
+      if Time.now >= time then break end
+    end
   end
   def initialize
     set = YAML.load_file('settings.yml')

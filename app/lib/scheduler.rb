@@ -8,7 +8,7 @@ class Scheduler
     items.inject(now) do |start_time, item|
       schedule = {}
       required = {}
-      scene_keys = ['relist', 'submit']
+      scene_keys = ['confirm', 'submit']
       scene_keys.each do |key|
         required[key] = $main.make_wait_time(key).to_i
       end
