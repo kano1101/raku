@@ -51,8 +51,9 @@ class ItemScraper
     RakumaBrowser.goto_sell(browser)
     puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
     gets
-    browser.divs(class: 'media').count.times.map do |idx|
-      target = browser.div(class: 'media', index: idx)
+    sell_div = browser.div(id: 'selling-container')
+    sell_div.divs(class: 'media').count.times.map do |idx|
+      target = sell_div.div(class: 'media', index: idx)
       target.scroll.to
       edit_page_url = target.a(class: ['btn', 'btn-default'], index: 0).href
       imgs_page_url = target.div(class: 'row').a.href
