@@ -26,6 +26,13 @@ class ItemRegister
   def self.exe_query_selector(browser, input_or_select, item_key, item)
     browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
   end
+
+  def self.wait_and_button_click(browser, word, item)
+    $main.wait_a_minute(word, item)
+    browser.button(:id => word).click
+    browser.wait_while { |b| b.button(:id => word).present? }
+    browser.wait
+  end
   
   def self.regist(browser, item)
     img_files = item.find_all do |key, value|
@@ -76,31 +83,31 @@ class ItemRegister
     # delivery_method_name
     # related_size_group_ids
     self.exe_query_selector(browser, 'select', 'request_required', item)
-    
-    $main.wait_a_minute(browser, 'relist', item)
-    browser.button(:id => 'confirm').click
-    browser.wait_while { |b| b.button(:id => 'confirm').present? }
-    browser.wait
-    
-    $main.wait_a_minute(browser, 'submit', item)
-    browser.button(:id => 'submit').click
-    browser.wait_while { |b| b.button(:id => 'submit').present? }
-    browser.wait
+
+    self.wait_and_button_click(browser, 'confirm', item)
+    self.wait_and_button_click(browser, 'submit', item)
   end
   
+  def self.exit_if_finishing
+    if $main.is_finishing
+      puts 'プログラムを途中終了します。'
+      exit
+    end
+  end
+
   def self.relist(browser, items)
+    puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
     items.each do |item|
       RakumaBrowser.goto_sell(browser)
       idx = self.find_scroll_locate(browser, item)
-      if idx
+      if self.delete(browser, item, idx)
         RakumaBrowser.goto_new(browser)
-        self.regist(browser, item); idx += 1;
-        RakumaBrowser.goto_sell(browser)
-        self.delete(browser, item, idx)
-        puts item['name'] + 'の出品と削除が完了しました。'
+        self.regist(browser, item)
+        puts '成功 : ' + item['name'] + 'の出品と削除が完了しました。'
       else
-        puts item['name'] + 'の再出品を試みましたがリストにないため失敗しました。'
+        puts '失敗 : ' + item['name'] + 'の再出品を試みましたがリストにないため失敗しました。'
       end
+      self.exit_if_finishing
     end
   end
 end
