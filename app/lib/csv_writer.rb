@@ -18,6 +18,8 @@ class CsvWriter
         csv << row
       end
     end
+    bk_fnm = DIR + Date.today.strftime('%Y%m%d') + Time.now.strftime('%H%M%S') + 'bk.csv'
+    FileUtils.cp(NEW_FILE, bk_fnm)
   end
   def self.restore_csv
     items = []
