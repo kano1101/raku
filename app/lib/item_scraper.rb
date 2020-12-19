@@ -21,7 +21,7 @@ class ItemScraper
   end
   
   def self.props_scrape(browser, edit_url:)
-    RakumaBrowser.goto_url_by_new_tab(browser, props_url)
+    RakumaBrowser.goto_url_by_new_tab(browser, edit_url)
     browser.html =~ /data-react-props="(.+?)"/
     plane = $1
     plane.gsub!('&quot;', '"')
@@ -65,9 +65,8 @@ class ItemScraper
     sell_div.divs(class: 'media').count.times.map do |idx|
       target = self.target(sell_div, idx)
       target.scroll.to
-      data << self.edit_btn(target).onclick[/{'dimension1': '(.+?)'}/]
+      self.edit_btn(target).onclick[/{'dimension1': '(.+?)'}/, 1].to_i
     end
-    data
   end
 
   def self.make_item_from_network(browser, idx)
@@ -78,6 +77,7 @@ class ItemScraper
     imgs_page_url = target.div(class: 'row').a.href
     props = self.props_scrape(browser, edit_url: edit_page_url)
     crops = self.crops_scrape(browser, imgs_url: imgs_page_url)
+    puts props['name'] + 'のデータをネットワークより取得します。'
     props.merge(crops)
   end
   
@@ -87,8 +87,8 @@ class ItemScraper
     gets
     item_ids_on_network(browser).map.with_index do |id, idx|
       item = items.find { |item| item['id'] == id }
+      puts "#{item['name']}のデータをCSVより取得します。" if item
       item ||= make_item_from_network(browser, idx)
-      puts item['name'] + 'のデータを取得しました。'
     end
   end
 end
