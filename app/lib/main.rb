@@ -44,23 +44,29 @@ class Main
     puts '設定ファイルを読み込みました。'
   end
   
-  def main
+  def do_scrape
     # print 'ラクマページよりCSVへとデータを落しますか？ (\'y\' or other) : '
     # do_or_not_download = gets.chomp
     Flow.download_and_generate_csv if @do_or_not_download == 'y'
+  end
+  def do_relist
     Flow.restore_csv_and_relist
   end
 
-  def self.run
+  def self.scrape
     unless $main
-    puts 'プログラムを開始しました。'
+      puts 'プログラムを開始しました。'
       $main = Main.new
-      $main.main
-    puts 'プログラムを終了します。'
+      $main.do_scrape
+      puts 'プログラムを終了します。'
     end
   end
-end
-
-if __FILE__ == $0
-  Main.run
+  def self.relist
+    unless $main
+      puts 'プログラムを開始しました。'
+      $main = Main.new
+      $main.do_relist
+      puts 'プログラムを終了します。'
+    end
+  end
 end
