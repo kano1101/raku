@@ -18,12 +18,12 @@ class Flow
     RakumaBrowser.exit(browser)
     CsvWriter.generate_csv(items)
     puts '取得したデータをCSVファイルに保存しました。'
-    binding.pry
   end
 
   def self.restore_csv_and_relist
     items = CsvWriter.restore_csv.reverse
     puts 'CSVファイルを読み込みました。'
+    # TODO : Viewerで実行有無の調整をできるようにしたい
     items = Scheduler.add_schedule(items)
     Scheduler.print_schedule(items)
     puts 'スケジューリングを行いました。'
