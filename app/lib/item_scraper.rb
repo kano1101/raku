@@ -21,20 +21,18 @@ class ItemScraper
   end
   
   def self.props_scrape(browser, edit_url:)
-    RakumaBrowser.goto_url_by_new_tab(browser, edit_url)
+    RakumaBrowser.goto_url(browser, edit_url)
     browser.html =~ /data-react-props="(.+?)"/
     plane = $1
     plane.gsub!('&quot;', '"')
-    RakumaBrowser.close_last_tab(browser)
     self.to_hash(plane)['item']
   end
   
   def self.crops_scrape(browser, imgs_url:)
-    RakumaBrowser.goto_url_by_new_tab(browser, imgs_url)
+    RakumaBrowser.goto_url(browser, imgs_url)
     img_urls = browser.imgs(class: 'sp-image').count.times.map do |idx|
       browser.img(class: 'sp-image', index: idx).src
     end
-    RakumaBrowser.close_last_tab(browser)
     
     FileUtils.mkdir_p(save_dir) unless File.exists?(SAVE_DIR)
     files = img_urls.map do |url|
@@ -51,11 +49,9 @@ class ItemScraper
   def self.edit_btn(target)
     target.a(class: ['btn', 'btn-default'], index: 0)
   end
-
   def self.target(sell_div, idx)
     sell_div.div(class: 'media', index: idx)
   end
-
   def self.sell_div(browser)
     browser.div(id: 'selling-container')
   end
@@ -68,27 +64,44 @@ class ItemScraper
       self.edit_btn(target).onclick[/{'dimension1': '(.+?)'}/, 1].to_i
     end
   end
-
-  def self.make_item_from_network(browser, idx)
-    sell_div = self.sell_div(browser)
-    target = self.target(sell_div, idx)
-    edit_btn = self.edit_btn(target)
-    edit_page_url = edit_btn.href
-    imgs_page_url = target.div(class: 'row').a.href
-    props = self.props_scrape(browser, edit_url: edit_page_url)
-    crops = self.crops_scrape(browser, imgs_url: imgs_page_url)
-    puts props['name'] + 'のデータをネットワークより取得します。'
+  def self.get_urls_from_network(browser)
+    item_ids_on_network(browser).map.with_index do |id, idx|
+      sell_div = self.sell_div(browser)
+      target = self.target(sell_div, idx)
+      edit_btn = self.edit_btn(target)
+      edit_url = edit_btn.href
+      imgs_url = target.div(class: 'row').a.href
+      { 'edit' => edit_url, 'imgs' => imgs_url }
+    end
+  end
+  
+  def self.make_item_from_network(browser, url_hash)
+    props = self.props_scrape(browser, edit_url: url_hash['edit'])
+    crops = self.crops_scrape(browser, imgs_url: url_hash['imgs'])
     props.merge(crops)
   end
   
-  def self.download(browser, items = [])
+  SAVED_IMG_DIR = 'saved_img/'
+  def self.download(browser)
     RakumaBrowser.goto_sell(browser)
     puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
     gets
-    item_ids_on_network(browser).map.with_index do |id, idx|
-      item = items.find { |item| item['id'] == id }
-      puts "#{item['name']}のデータをCSVより取得します。" if item
-      item ||= make_item_from_network(browser, idx)
+    urls = get_urls_from_network(browser)
+    items = urls.map do |url_hash|
+      make_item_from_network(browser, url_hash)
     end
+    imgs = []
+    items.each do |item|
+      imgs << item['img1']
+      imgs << item['img2']
+      imgs << item['img3']
+      imgs << item['img4']
+    end
+    ok_imgs = imgs.select { |img| img }
+    ng_imgs = Dir.glob(SAVED_IMG_DIR + '*').map.select do |path|
+      !ok_imgs.include?(File.basename(path))
+    end
+    ng_imgs.each { |path| File.delete(path) }
+    items
   end
 end
