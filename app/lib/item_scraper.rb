@@ -20,12 +20,12 @@ class ItemScraper
     file
   end
   
-  def self.props_scrape(browser, props_url:)
+  def self.props_scrape(browser, edit_url:)
     RakumaBrowser.goto_url_by_new_tab(browser, props_url)
     browser.html =~ /data-react-props="(.+?)"/
     plane = $1
     plane.gsub!('&quot;', '"')
-   RakumaBrowser.close_last_tab(browser)
+    RakumaBrowser.close_last_tab(browser)
     self.to_hash(plane)['item']
   end
   
@@ -47,20 +47,48 @@ class ItemScraper
     1.upto(4) { |num| files['img' + num.to_s] ||= nil }
     files
   end
-  def self.download(browser)
+
+  def self.edit_btn(target)
+    target.a(class: ['btn', 'btn-default'], index: 0)
+  end
+
+  def self.target(sell_div, idx)
+    sell_div.div(class: 'media', index: idx)
+  end
+
+  def self.sell_div(browser)
+    browser.div(id: 'selling-container')
+  end
+  
+  def self.item_ids_on_network(browser)
+    sell_div = self.sell_div(browser)
+    sell_div.divs(class: 'media').count.times.map do |idx|
+      target = self.target(sell_div, idx)
+      target.scroll.to
+      data << self.edit_btn(target).onclick[/{'dimension1': '(.+?)'}/]
+    end
+    data
+  end
+
+  def self.make_item_from_network(browser, idx)
+    sell_div = self.sell_div(browser)
+    target = self.target(sell_div, idx)
+    edit_btn = self.edit_btn(target)
+    edit_page_url = edit_btn.href
+    imgs_page_url = target.div(class: 'row').a.href
+    props = self.props_scrape(browser, edit_url: edit_page_url)
+    crops = self.crops_scrape(browser, imgs_url: imgs_page_url)
+    props.merge(crops)
+  end
+  
+  def self.download(browser, items = [])
     RakumaBrowser.goto_sell(browser)
     puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
     gets
-    sell_div = browser.div(id: 'selling-container')
-    sell_div.divs(class: 'media').count.times.map do |idx|
-      target = sell_div.div(class: 'media', index: idx)
-      target.scroll.to
-      edit_page_url = target.a(class: ['btn', 'btn-default'], index: 0).href
-      imgs_page_url = target.div(class: 'row').a.href
-      props = self.props_scrape(browser, props_url: edit_page_url)
-      crops = self.crops_scrape(browser, imgs_url: imgs_page_url)
-      puts props['name'] + 'のデータを取得しました。'
-      props.merge(crops)
+    item_ids_on_network(browser).map.with_index do |id, idx|
+      item = items.find { |item| item['id'] == id }
+      item ||= make_item_from_network(browser, idx)
+      puts item['name'] + 'のデータを取得しました。'
     end
   end
 end
