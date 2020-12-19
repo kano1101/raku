@@ -43,4 +43,6 @@ yarn-debug.log*
 **/.DS_Store
 /UserData/*
 /saved_img/*
+!/saved_img/.keep
 /csv/*
+!/csv/.keep
