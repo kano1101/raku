@@ -9,13 +9,16 @@ require_relative 'scheduler'
 class Flow
   def self.download_and_generate_csv
     browser = RakumaBrowser.start_up
+    items = CsvWriter.restore_csv
+    puts 'CSVファイルを読み込みました。'
     puts '出品中データの取得を開始します。'
-    items = ItemScraper.download(browser)
-    puts "全#{items.count}商品が見つかりました。"
+    items = ItemScraper.download(browser, items)
+    puts "全#{items.count}商品が存在します。"
     puts '出品中データの取得が完了しました。'
     RakumaBrowser.exit(browser)
     CsvWriter.generate_csv(items)
     puts '取得したデータをCSVファイルに保存しました。'
+    binding.pry
   end
 
   def self.restore_csv_and_relist
@@ -28,6 +31,5 @@ class Flow
     ItemRegister.relist(browser, items)
     puts 'すべて再出品が完了しました。'
     RakumaBrowser.exit(browser)
-    puts 'ブラウザを閉じました。'
   end
 end

@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'csv'
 
 class CsvWriter
@@ -22,6 +23,7 @@ class CsvWriter
     FileUtils.cp(NEW_FILE, bk_fnm)
   end
   def self.restore_csv
+    puts 'CSVファイルが存在しません。' unless File.exists?(NEW_FILE)
     items = []
     CSV.foreach(NEW_FILE, headers: true) do |row|
       items << row.map { |element| [element[0], to_num(element[1])] }.to_h
