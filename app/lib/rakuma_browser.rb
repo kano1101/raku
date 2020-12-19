@@ -13,7 +13,11 @@ class RakumaBrowser
   
   def self.goto_url(browser, url)
     browser.goto(url)
-    browser.wait
+    begin
+      browser.wait
+    rescue Watir::Wait::TimeoutError
+      retry
+    end
   end
   
   def self.goto_mypage(browser)
