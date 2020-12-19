@@ -1,4 +1,3 @@
 #!/bin/zsh
-
-cd `dirname $0`
-ruby app/lib/main.rb
+SCRIPT_DIR="$(cd "$(dirname "$0")"; pwd)"
+ruby $SCRIPT_DIR/app/lib/main.rb
