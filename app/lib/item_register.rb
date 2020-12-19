@@ -8,7 +8,7 @@ class ItemRegister
   def self.match_index(str_array, str)
     str_array.index { |e_str| e_str == str }
   end
-  def self.find_scroll_locate(browser, item)
+  def self.item_index(browser, item)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
     match_index(scan_id_array, id)
@@ -40,7 +40,7 @@ class ItemRegister
     end.map do |key, value|
       value
     end
-    count = img_files.count { |n| n }
+    count = img_files.count { |n| n } # TODO : リファクタリング対象
     for idx in 0...count do
       browser.file_field(id: 'image_tmp', index: idx).set(Dir.pwd + '/saved_img/' + img_files[idx])
     end
@@ -99,7 +99,7 @@ class ItemRegister
     puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
     items.each do |item|
       RakumaBrowser.goto_sell(browser)
-      idx = self.find_scroll_locate(browser, item)
+      idx = self.item_index(browser, item)
       if self.delete(browser, item, idx)
         RakumaBrowser.goto_new(browser)
         self.regist(browser, item)
