@@ -1,6 +1,7 @@
 # coding: utf-8
 require 'watir'
 require_relative 'flow'
+require_relative 'yaml_util'
 
 class Main
   def make_wait_time(scene)
@@ -29,6 +30,7 @@ class Main
   def wait_a_minute(scene, item)
     time = item[scene]
     loop do
+      p time
       sleep(1)
       if getch then finish_program end
       if self.is_finishing then break end
@@ -36,37 +38,22 @@ class Main
     end
   end
   def initialize
-    set = YAML.load_file('settings.yml')
-    @wait_sec = set['delay'].map do |scene_key, min_max_hash|
-      [scene_key, min_max_hash]
-    end.to_h
-    @do_or_not_download = set['download']
+    delays = YamlUtil.new.read
+    @wait_sec = {
+      'confirm' => { 'min' => delays['conmin'], 'max' => delays['conmax'] },
+      'submit'  => { 'min' => delays['submin'], 'max' => delays['submax'] },
+    }
+    # @wait_sec = set['delay'].map do |scene_key, min_max_hash|
+    #   [scene_key, min_max_hash]
+    # end.to_h
     puts '設定ファイルを読み込みました。'
   end
   
-  def do_scrape
-    # print 'ラクマページよりCSVへとデータを落しますか？ (\'y\' or other) : '
-    # do_or_not_download = gets.chomp
-    Flow.download_and_generate_csv if @do_or_not_download == 'y'
-  end
-  def do_relist
-    Flow.restore_csv_and_relist
-  end
-
   def self.scrape
-    unless $main
-      puts 'プログラムを開始しました。'
-      $main = Main.new
-      $main.do_scrape
-      puts 'プログラムを終了します。'
-    end
+    Flow.download_and_generate_csv
   end
   def self.relist
-    unless $main
-      puts 'プログラムを開始しました。'
-      $main = Main.new
-      $main.do_relist
-      puts 'プログラムを終了します。'
-    end
+    puts 'Main#relist'
+    Flow.restore_csv_and_relist
   end
 end

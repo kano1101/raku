@@ -14,10 +14,17 @@ class ItemRegister
     match_index(scan_id_array, id)
   end
 
+  def self.is_item_deleted(browser)
+    /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html rescue return false
+  end
+
+  # ラクマ上に商品が存在し、削除に成功した場合その商品のインデックスを返す。
+  # 存在せず(売れたまたは削除された)場合はfalseを返すので、スキップ対応してください。
   def self.delete(browser, item, idx)
     if idx
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
       browser.alert.wait_until(&:present?).ok
+      if is_item_deleted(browser) then return false end# 削除失敗の意味でfalseを返す
       browser.wait
     end
     idx
@@ -40,7 +47,7 @@ class ItemRegister
     end.map do |key, value|
       value
     end
-    count = img_files.count { |n| n } # TODO : リファクタリング対象
+    count = img_files.compact.count
     for idx in 0...count do
       browser.file_field(id: 'image_tmp', index: idx).set(Dir.pwd + '/saved_img/' + img_files[idx])
     end
@@ -98,6 +105,7 @@ class ItemRegister
   def self.relist(browser, items)
     puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
     items.each do |item|
+      self.exit_if_finishing
       RakumaBrowser.goto_sell(browser)
       idx = self.item_index(browser, item)
       if self.delete(browser, item, idx)
@@ -105,9 +113,8 @@ class ItemRegister
         self.regist(browser, item)
         puts '成功 : ' + item['name'] + 'の出品と削除が完了しました。'
       else
-        puts '失敗 : ' + item['name'] + 'の再出品を試みましたがリストにないため失敗しました。'
+        puts '失敗 : ' + item['name'] + 'の商品の削除を試みましたがリストにない(売れたまたは削除された)ため失敗しました。'
       end
-      self.exit_if_finishing
     end
   end
 end

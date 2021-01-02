@@ -1,6 +1,7 @@
 # coding: utf-8
 require 'watir'
 require 'open-uri'
+require 'tk'
 require_relative 'rakuma_browser'
 
 class ItemScraper
@@ -46,6 +47,10 @@ class ItemScraper
     files
   end
 
+  def self.make_scheduled
+    { 'scheduled' => true }
+  end
+
   def self.edit_btn(target)
     target.a(class: ['btn', 'btn-default'], index: 0)
   end
@@ -78,14 +83,16 @@ class ItemScraper
   def self.make_item_from_network(browser, url_hash)
     props = self.props_scrape(browser, edit_url: url_hash['edit'])
     crops = self.crops_scrape(browser, imgs_url: url_hash['imgs'])
-    props.merge(crops)
+    sched = self.make_scheduled
+    props.merge(crops).merge(sched)
   end
   
   SAVED_IMG_DIR = 'saved_img/'
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
-    gets
+#    TkButton.new(nil, text: 'リストをすべて開きました。').pack
+#    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
+#    gets
     urls = get_urls_from_network(browser)
     items = urls.map do |url_hash|
       make_item_from_network(browser, url_hash)
@@ -97,7 +104,7 @@ class ItemScraper
       imgs << item['img3']
       imgs << item['img4']
     end
-    ok_imgs = imgs.select { |img| img }
+    ok_imgs = imgs.compact
     ng_imgs = Dir.glob(SAVED_IMG_DIR + '*').map.select do |path|
       !ok_imgs.include?(File.basename(path))
     end

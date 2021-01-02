@@ -22,9 +22,8 @@ class Flow
     items = CsvWriter.restore_csv.reverse
     puts 'CSVファイルを読み込みました。'
     # TODO : Viewerで実行有無の調整をできるようにしたい
-    items = Scheduler.add_schedule(items)
-    Scheduler.print_schedule(items)
-    puts 'スケジューリングを行いました。'
+    # go_proc = -> { exit }
+    # ScheduleController.new(items, go_proc)
     browser = RakumaBrowser.start_up
     ItemRegister.relist(browser, items)
     puts 'すべて再出品が完了しました。'
