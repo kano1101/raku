@@ -12,7 +12,14 @@ class Config
     TkEntry.new(frame, font: { size: 28 }, textvariable: @times.ref(field[:type])).pack(side: 'left', anchor: 'w').insert(0, field[:time])
     frame.pack(side: 'top', anchor: 'c')
   end
-  
+
+  def is_valid_times
+    return false if @times[:conmin].to_f < 0
+    return false if @times[:submin].to_f < 0
+    return false if @times[:conmin].to_f > @times[:conmax].to_f
+    return false if @times[:submin].to_f > @times[:submax].to_f
+    true
+  end
   def initialize
     @times = TkVariable.new_hash
     
@@ -29,8 +36,17 @@ class Config
     fields.each do |field|
       make_entry(base, field)
     end
- 
-    TkButton.new(base, text: '設　定', font: { size: 28 }, command: proc { YamlUtil.new.write(@times); base.destroy }).pack(side: 'top', anchor: 'c')
-    TkButton.new(base, text: '閉じる', font: { size: 28 }, command: proc { base.destroy }).pack(side: 'top', anchor: 'c')
+
+    button_info = [
+      { text: '設　定', command: proc { YamlUtil.new.write(@times) if is_valid_times; base.destroy } },
+      { text: '閉じる', command: proc { base.destroy } },
+    ]
+    button_info.each do |info|
+      TkButton.new(base) {
+        text info[:text]
+        command info[:command]
+        font({ size: 28 })
+      }.pack(side: 'top', anchor: 'c')
+    end
   end
 end

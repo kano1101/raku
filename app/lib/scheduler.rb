@@ -1,5 +1,6 @@
 # coding: utf-8
 require_relative 'main'
+require_relative 'rblib/conv'
 
 class Scheduler
   def self.add_schedule(items)
@@ -23,6 +24,14 @@ class Scheduler
   def self.print_schedule(items)
     items.each do |item|
       puts '出品完了予定時刻' + ' : ' + item['submit'].strftime('%H:%M:%S') + ' : ' + '商品[' + item['name'] + ']'
+    end
+  end
+
+  using Convertable
+  
+  def self.remove_if_not_scheduled(items)
+    items.select do |item|
+      item['scheduled'].to_bool
     end
   end
 end

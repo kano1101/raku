@@ -67,6 +67,7 @@ class Main
     items = CsvWriter.restore_csv
     puts 'CSVファイルを読み込みました。'
     # TODO : Viewerで実行有無の調整をできるようにしたい
+    items = Scheduler.remove_if_not_scheduled(items)
     items = Scheduler.add_schedule(items)
     Scheduler.print_schedule(items)
     puts 'スケジューリングを行いました。'
