@@ -1,23 +1,29 @@
 # coding: utf-8
 require 'watir'
 require 'open-uri'
+require 'tk'
+require 'RMagick'
 require_relative 'rakuma_browser'
 
 class ItemScraper
   
   SAVE_DIR = 'saved_img/'
+  MINI_DIR = 'saved_img_mini/'
   
   def self.to_hash(str)
     JSON.parse(str)
   end
-  def self.save_with(dir:, file:, url:)
-    save_path = dir + file
+  def self.save_with(file:, url:)
+    save_path = SAVE_DIR + file
     URI.open(save_path, 'wb') do |path|
       URI.open(url) do |receive|
         path.write(receive.read)
       end
     end
-    file
+  end
+  def self.make_mini(file:, rate:)
+    save_path = MINI_DIR + file
+    Magick::Image.read(SAVE_DIR + file).first.resize(rate).write(save_path)
   end
   
   def self.props_scrape(browser, edit_url:)
@@ -35,8 +41,12 @@ class ItemScraper
     end
     
     FileUtils.mkdir_p(save_dir) unless File.exists?(SAVE_DIR)
+    FileUtils.mkdir_p(save_dir) unless File.exists?(MINI_DIR)
     files = img_urls.map do |url|
-      self.save_with(dir: SAVE_DIR, file: url[/(\d+.\w+.)\?/, 1], url: url)
+      file_name = url[/(\d+.\w+.)\?/, 1]
+      self.save_with(file: file_name, url: url)
+      self.make_mini(file: file_name, rate: 0.2)
+      file_name
     end.map.with_index(1) do |fnm, num| # img(n)のnは1始まり
       ['img' + num.to_s, fnm]
     end.to_h
@@ -44,6 +54,10 @@ class ItemScraper
     # img2以降が存在しなかったらnil生成
     1.upto(4) { |num| files['img' + num.to_s] ||= nil }
     files
+  end
+
+  def self.make_scheduled
+    { 'scheduled' => true }
   end
 
   def self.edit_btn(target)
@@ -78,30 +92,35 @@ class ItemScraper
   def self.make_item_from_network(browser, url_hash)
     props = self.props_scrape(browser, edit_url: url_hash['edit'])
     crops = self.crops_scrape(browser, imgs_url: url_hash['imgs'])
-    props.merge(crops)
+    sched = self.make_scheduled
+    props.merge(crops).merge(sched)
   end
   
-  SAVED_IMG_DIR = 'saved_img/'
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
-    gets
+#    TkButton.new(nil, text: 'リストをすべて開きました。').pack
+#    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
+#    gets
     urls = get_urls_from_network(browser)
     items = urls.map do |url_hash|
       make_item_from_network(browser, url_hash)
     end
-    imgs = []
-    items.each do |item|
-      imgs << item['img1']
-      imgs << item['img2']
-      imgs << item['img3']
-      imgs << item['img4']
-    end
-    ok_imgs = imgs.select { |img| img }
-    ng_imgs = Dir.glob(SAVED_IMG_DIR + '*').map.select do |path|
-      !ok_imgs.include?(File.basename(path))
-    end
-    ng_imgs.each { |path| File.delete(path) }
+    keys = 1.upto(4).map { |n| 'img' + n.to_s }
+#    p keys
+    #    ok_file_names = items.map.with_index { |item, idx| item[keys[idx]] }.compact
+    ok_file_names = items.map do |item|
+      keys.map do |key|
+        item[key]
+      end
+    end.flatten.compact
+    select_ng_files(ok_files: ok_file_names, dir: SAVE_DIR).each { |path| File.delete(path) }
+    select_ng_files(ok_files: ok_file_names, dir: MINI_DIR).each { |path| File.delete(path) }
     items
+  end
+
+  def self.select_ng_files(ok_files:, dir:)
+    Dir.glob(dir + '*').map.select do |path|
+      !ok_files.include?(File.basename(path))
+    end
   end
 end

@@ -44,5 +44,7 @@ yarn-debug.log*
 /UserData/*
 /saved_img/*
 !/saved_img/.keep
+/saved_img_mini/*
+!/saved_img_mini/.keep
 /csv/*
 !/csv/.keep
