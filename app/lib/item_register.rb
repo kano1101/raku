@@ -35,8 +35,8 @@ class ItemRegister
   end
 
   def self.wait_and_button_click(browser, word, item)
-    # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']が追加されてある
-    $main.wait_a_minute(word, item)
+    # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
+    $main.wait_a_minute(browser, word, item)
     browser.button(:id => word).click
     browser.wait_while { |b| b.button(:id => word).present? }
     browser.wait
