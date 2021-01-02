@@ -2,15 +2,18 @@
 require 'tk'
 require 'tkextlib/tkimg/jpeg'
 require 'tkextlib/bwidget'
+require_relative 'rblib/conv'
 require_relative 'csv_writer'
 
 class Row
-  KEYS = ['scheduled', 'name', 'detail'].freeze
+  TOGGLE_KEYS = ['scheduled'].freeze
+  KEYS = ['name', 'detail'].freeze
   IMG_KEYS = ['img1', 'img2', 'img3', 'img4'].freeze
   OTHER_KEYS = ['origin_price', 'created_at', 'updated_at', 'category_name', 'size_name'].freeze
-  ALL_KEYS = KEYS + IMG_KEYS + OTHER_KEYS
+  ALL_KEYS = TOGGLE_KEYS + KEYS + IMG_KEYS + OTHER_KEYS
 
   SMALL_FONT_SIZE = 12
+  LARGE_FONT_SIZE = 28
 
   MINI_DIR = 'saved_img_mini/'
 
@@ -42,7 +45,20 @@ class Row
       frame = TkFrame.new(parent, width: FRAME_WIDTH, height: height) # TODO
       frame.pack(side: :top, fill: :both)
     end
-    
+
+    # String#to_bool目的
+    using Convertable
+    def to_which(bool_str)
+      bool_str.to_bool ? '実行' : '停止'
+    end
+
+    def add_toggle(parent, element)
+      v = TkVariable.new(to_which(element))
+      t = TkButton.new(parent, textvariable: v, anchor: :c)
+      t.command(proc { element.replace((!element.to_bool).to_s); v.value = to_which(element) })
+      t.font({ size: LARGE_FONT_SIZE })
+      pack(t)
+    end
     def add_label(parent, element)
       l = TkLabel.new(parent, text: element, anchor: :c)
       l.font({ size: SMALL_FONT_SIZE })
@@ -54,6 +70,14 @@ class Row
       c.pack
     end
     
+    def make_row_toggle(keys, frame, item)
+      keys.each do |key|
+        element = add_toggle(frame, item[key])
+        length = COLUMN_WIDTHS[ALL_KEYS.index(key)]
+        element.configure(wraplength: length)
+        place(element, ALL_KEYS.index(key))
+      end
+    end
     def make_row_label(keys, frame, item)
       keys.each do |key|
         element = add_label(frame, item[key])
@@ -77,6 +101,7 @@ class Row
     
     def make_row(parent, item)
       frame = make_frame(parent)
+      make_row_toggle(TOGGLE_KEYS, frame, item)
       make_row_label(KEYS, frame, item)
       make_row_image(IMG_KEYS, frame, item)
       make_row_label(OTHER_KEYS, frame, item)
@@ -111,8 +136,17 @@ class ItemSelector
     pack_matrix(row_frame, items)
 
     button_frame = TkFrame.new(base).pack(side: :top)
-    TkButton.new(button_frame, text: '決定', font: { size: 28 }, command: proc { CsvWriter.generate_csv(items); base.destroy }).pack(side: :left, anchor: :c)
-    TkButton.new(button_frame, text: '閉じる', font: { size: 28 }, command: proc { base.destroy }).pack(side: :left, anchor: :c)
+    button_info = [
+      { text: '決　定', command: proc { CsvWriter.generate_csv(items); base.destroy } },
+      { text: '閉じる', command: proc { base.destroy } },
+    ]
+    button_info.each do |info|
+      TkButton.new(button_frame) {
+        text info[:text]
+        command info[:command]
+        font({ size: Row::LARGE_FONT_SIZE })
+      }.pack(side: :left, anchor: :c)
+    end
   end
   def pack_matrix(parent, items)
     Row.make_column_label(parent)

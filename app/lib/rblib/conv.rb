@@ -11,6 +11,9 @@ module Convertable
       Time.new(*itself.scan(/\d+/))
     end
   end
+  refine String do
+    def to_bool
+      itself.to_i != 0 || (['TRUE', 'True', 'true'] & [itself]).count != 0 ? true : false
+    end
+  end
 end
-
-using Convertable
