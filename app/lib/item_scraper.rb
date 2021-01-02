@@ -97,7 +97,6 @@ class ItemScraper
   end
   
   def self.download(browser)
-    puts 'ItemScraper::download'
     RakumaBrowser.goto_sell(browser)
 #    TkButton.new(nil, text: 'リストをすべて開きました。').pack
 #    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
@@ -109,13 +108,11 @@ class ItemScraper
     keys = 1.upto(4).map { |n| 'img' + n.to_s }
 #    p keys
     #    ok_file_names = items.map.with_index { |item, idx| item[keys[idx]] }.compact
-    p items.count
     ok_file_names = items.map do |item|
       keys.map do |key|
         item[key]
       end
     end.flatten.compact
-    p ok_file_names
     select_ng_files(ok_files: ok_file_names, dir: SAVE_DIR).each { |path| File.delete(path) }
     select_ng_files(ok_files: ok_file_names, dir: MINI_DIR).each { |path| File.delete(path) }
     items

@@ -6,7 +6,7 @@ require_relative 'yaml_util'
 class Main
   def make_wait_time(scene)
     random = Random.new()
-    random.rand(@wait_sec[scene]['min']..@wait_sec[scene]['max'])
+    random.rand(@wait_sec[scene]['min'].to_f..@wait_sec[scene]['max'].to_f)
   end
   def getch
     system("stty raw -echo")
@@ -30,8 +30,6 @@ class Main
   def wait_a_minute(scene, item)
     time = item[scene]
     loop do
-      p time
-      p item
       sleep(1)
       if getch then finish_program end
       if self.is_finishing then break end
@@ -54,7 +52,6 @@ class Main
     Flow.download_and_generate_csv
   end
   def self.relist
-    puts 'Main#relist'
     Flow.restore_csv_and_relist
   end
 end
