@@ -20,7 +20,6 @@ class Config
     base.grab_set # Base Windowの操作を禁止する
 
     delays = YamlUtil.new.read
-    p delays
     fields = [
       { type: :conmin, text: '入力遅延最小値(秒)', time: delays['conmin'] },
       { type: :conmax, text: '入力遅延最大値(秒)', time: delays['conmax'] },

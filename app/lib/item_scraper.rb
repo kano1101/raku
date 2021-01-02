@@ -98,16 +98,13 @@ class ItemScraper
   
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-#    TkButton.new(nil, text: 'リストをすべて開きました。').pack
-#    puts '「次へ」でリストを全て開いて最後まで展開したらEnterを押してください。'
-#    gets
+    puts 'リストを全て開いて最後まで展開したらEnterを押してください。'
+    gets
     urls = get_urls_from_network(browser)
     items = urls.map do |url_hash|
       make_item_from_network(browser, url_hash)
     end
     keys = 1.upto(4).map { |n| 'img' + n.to_s }
-#    p keys
-    #    ok_file_names = items.map.with_index { |item, idx| item[keys[idx]] }.compact
     ok_file_names = items.map do |item|
       keys.map do |key|
         item[key]
