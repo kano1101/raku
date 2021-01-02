@@ -31,6 +31,7 @@ class Main
     time = item[scene]
     loop do
       p time
+      p item
       sleep(1)
       if getch then finish_program end
       if self.is_finishing then break end
