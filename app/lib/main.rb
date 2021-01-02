@@ -5,6 +5,7 @@ require_relative 'rakuma_browser'
 require_relative 'item_scraper'
 require_relative 'item_register'
 require_relative 'item_selector'
+require_relative 'scheduler'
 require_relative 'csv_writer'
 
 class Main
@@ -58,12 +59,12 @@ class Main
     puts "全#{items.count}商品が存在します。"
     puts '出品中データの取得が完了しました。'
     RakumaBrowser.exit(browser)
-    CsvWriter.generate_csv(items)
+    CsvWriter.generate_csv(items.reverse)
     puts '取得したデータをCSVファイルに保存しました。'
   end
   def self.relist
     $main.start_relister
-    items = CsvWriter.restore_csv.reverse
+    items = CsvWriter.restore_csv
     puts 'CSVファイルを読み込みました。'
     # TODO : Viewerで実行有無の調整をできるようにしたい
     items = Scheduler.add_schedule(items)
@@ -76,7 +77,7 @@ class Main
     $main.finish_relister
   end
   def self.select
-    items = CsvWriter.restore_csv.reverse
+    items = CsvWriter.restore_csv
     puts 'CSVファイルを読み込みました。'
     ItemSelector.new(items)
     CsvWriter.generate_csv(items)
