@@ -98,8 +98,13 @@ class ItemScraper
   
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    puts 'リストを全て開いて最後まで展開したらEnterを押してください。'
-    gets
+    browser.a(id: 'ga_click_delete').wait_until(&:present?)
+    browser.wait
+    while browser.span(id: 'selling-container_button').a.exists?
+      browser.span(id: 'selling-container_button').a.click
+      browser.wait_while { |b| b.span(id: 'selling-container_button').present? }
+      browser.wait
+    end
     urls = get_urls_from_network(browser)
     items = urls.map do |url_hash|
       make_item_from_network(browser, url_hash)
