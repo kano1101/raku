@@ -98,7 +98,7 @@ class ItemScraper
   
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    while browser.nav(class: 'pagination_more').span(id: 'selling-container_button').as.count.times != 0
+    while browser.nav(class: 'pagination_more').span(id: 'selling-container_button').a.exists?
       browser.nav(class: 'pagination_more').span(id: 'selling-container_button').a.click
       browser.wait
     end
