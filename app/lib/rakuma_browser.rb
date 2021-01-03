@@ -31,7 +31,6 @@ class RakumaBrowser
   def self.goto_sell(browser)
     sell_url = 'https://fril.jp/sell'
     goto_url(browser, sell_url)
-    browser.div(id: 'selling-container').wait_until_present
   end
   def self.goto_new(browser)
     new_url = 'https://fril.jp/item/new'

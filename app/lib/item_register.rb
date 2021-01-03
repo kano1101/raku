@@ -108,6 +108,8 @@ class ItemRegister
     items.each do |item|
       self.exit_if_finishing
       RakumaBrowser.goto_sell(browser)
+      browser.a(id: 'ga_click_delete').wait_until(&:present?)
+      browser.wait
       while browser.span(id: 'selling-container_button').a.exists?
         browser.span(id: 'selling-container_button').a.click
         browser.wait_while { |b| b.span(id: 'selling-container_button').present? }
