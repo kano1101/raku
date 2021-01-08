@@ -98,11 +98,11 @@ class ItemScraper
   
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    browser.a(id: 'ga_click_delete').wait_until(&:present?)
+    browser.a(id: 'ga_click_delete').wait_until(timeout: 3600, &:present?)
     browser.wait
     while browser.span(id: 'selling-container_button').a.exists?
       browser.span(id: 'selling-container_button').a.click
-      browser.wait_while { |b| b.span(id: 'selling-container_button').present? }
+      browser.wait_while(timeout: 3600) { |b| b.span(id: 'selling-container_button').present? }
       browser.wait
     end
     urls = get_urls_from_network(browser)
