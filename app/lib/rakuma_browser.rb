@@ -41,7 +41,7 @@ class RakumaBrowser
     browser.close
   end
   def self.wait_close(browser)
-    browser.wait_while(timeout: 600, &:exists?)
+    browser.wait_while(timeout: 3600, &:exists?)
     browser.close
   end
   

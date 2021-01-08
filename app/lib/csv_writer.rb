@@ -23,11 +23,8 @@ class CsvWriter
     FileUtils.cp(NEW_FILE, bk_fnm)
   end
   def self.restore_csv
-    self.restore_csv_with_name(NEW_FILE)
-  end
-  def self.restore_csv_with_name(fnm)
-    puts "CSVファイルが存在しません。ファイル名 : #{fnm}" unless File.exists?(fnm)
-    CSV.foreach(fnm, headers: true).map do |row|
+    puts 'CSVファイルが存在しません。' unless File.exists?(NEW_FILE)
+    CSV.foreach(NEW_FILE, headers: true).map do |row|
       row.map { |element| [element[0], to_num(element[1])] }.to_h
     end
   end

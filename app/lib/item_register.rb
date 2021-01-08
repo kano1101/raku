@@ -23,7 +23,7 @@ class ItemRegister
   def self.delete(browser, item, idx)
     if idx
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-      browser.alert.wait_until(&:present?).ok
+      browser.alert.wait_until(timeout: 3600, &:present?).ok
       if is_item_deleted(browser) then return false end# 削除失敗の意味でfalseを返す
       browser.wait
     end
@@ -38,7 +38,7 @@ class ItemRegister
     # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
     $main.wait_a_minute(browser, word, item)
     browser.button(:id => word).click
-    browser.wait_while { |b| b.button(:id => word).present? }
+    browser.wait_while(timeout: 3600) { |b| b.button(:id => word).present? }
     browser.wait
   end
   
@@ -108,11 +108,11 @@ class ItemRegister
     items.each do |item|
       self.exit_if_finishing
       RakumaBrowser.goto_sell(browser)
-      browser.div(class: 'breadcrumb-box').wait_until(&:present?)
+      browser.a(id: 'ga_click_delete').wait_until(timeout: 3600, &:present?)
       browser.wait
       while browser.span(id: 'selling-container_button').a.exists?
         browser.span(id: 'selling-container_button').a.click
-        browser.wait_while { |b| b.span(id: 'selling-container_button').present? }
+        browser.wait_while(timeout: 3600) { |b| b.span(id: 'selling-container_button').present? }
         browser.wait
       end
       idx = self.item_index(browser, item)
