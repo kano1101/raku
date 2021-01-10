@@ -18,26 +18,16 @@ class ItemRegister
     match_index(scan_id_array, id)
   end
 
-  # このメソッドで、商品削除に失敗してしまったかどうかを確認できる
   def self.is_item_deleted(browser)
-    # 成功していたら/<title>出品した商品｜ラクマ<\/title>/がマッチする
     /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html
   end
   
-  # 商品が存在しない(売れたまたは削除された)場合やidxが不正であればfalseを返すので、スキップ対応してください
+  # 商品が存在しない(売れたまたは削除された)場合はnil、idxが不正であればfalseを返すので、スキップ対応してください
   # idxに正の整数以外を入れると動作しません
   def self.delete(browser, item, idx)
     return false unless idx
-    # TODO : タイムアウトエラーの原因ここ idxが不正であることによりそう
     browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-    al = browser.alert
-    begin
-      waiting_al = al.wait_until(timeout: 30, &:present?)
-    rescue
-      p 'my timeout'
-      raise
-    end
-    waiting_al.ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
     return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
@@ -140,13 +130,7 @@ class ItemRegister
       RakumaBrowser.next_button_all_open(browser)
 
       # itemの再出品
-      # TODO : 処理速度によっては「出品した商品」ページがロード中になるのかもしれないのでつぶしたい
-      browser.wait # ブラウザが遅いため待つ
-      
       idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
-
-      # ロード遅れは事前に確実に行うよう対処すれば良い
-      # これがnil、つまりリストにないというのは、ロードが済んでいないもしくは売れたか削除されたことを表している
       if idx
         target = browser.div(id: 'selling-container').div(class: 'media', index: idx)
         target.scroll.to
