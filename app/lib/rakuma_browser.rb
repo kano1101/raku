@@ -88,33 +88,40 @@ class RakumaBrowser
   def self.next_button_anchor(browser)
     self.next_button_span(browser).a(index: 0)
   end
-  def self.had_page_load_completed(browser)
+  def self.has_page_load_completed(browser)
     browser.execute_script("return document.readyState;") == "complete"
   end
-  def self.wait_page_load_complete(browser)
+  def self.wait_until_page_load_completed(browser)
     browser.wait_until(timeout: 3600) do
-      self.had_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
+      print 'ページが完全に読み込まれたらtrue : '
+      p self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
     end
   end
-  def self.wait_while_next_button_present(browser, count)
-    p 'a:' + browser.navs(class: 'pagination_more').count.to_s + 'count:' + count.to_s
-    browser.wait_while(timeout: 3600) do
-      p 'b:' + browser.navs(class: 'pagination_more').count.to_s + 'count:' + count.to_s
-      browser.navs(class: 'pagination_more').count == count
-      # self.next_button_span(browser).present? # 次を開くボタンがいなくなったら偽が返るので次へ進むことができます
+  def self.wait_for_continuity(browser, count)
+    continuity = nil
+    browser.wait_until(timeout: 3600) do
+      continuity ||= :finish if browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).spans.count == 0
+      continuity ||= :continue if browser.div(id: 'selling-container').navs.count == opened_count + 1
+      continuity
     end
-    p 'c:' + browser.navs(class: 'pagination_more').count.to_s + 'count:' + count.to_s
+    continuity
   end
   
   def self.next_button_all_open(browser)
+    self.wait_until_page_load_completed(browser)
+    return nil if browser.div(id: 'selling-container').navs.count == 0
     opened_count = 1
-    # 「続きを見る」最後まで全展開
-    while self.next_button_anchor(browser).exists? # 最後まで「続きを見る」を開くために存在を確認している
-      self.next_button_anchor(browser).fire_event :onclick # 「続きを見る」をクリック
-      self.wait_while_next_button_present(browser, opened_count) # 「続きを見る」が消えるのを待ち次へ（すでに次の「続きを見る」が表示されていたらここでTimeoutを吐くだろう）
-      opened_count += 1
-      #browser.wait
+    loop do
+      browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).span.a.click
+      continuity = self.wait_for_continuity(browser, opened_count)
+      case continuity
+      when :finish
+        break
+      when :continue
+        opened_count += 1
+      end
     end
+    puts "リストは#{opened_count}回展開されました。"
   end
 
 end

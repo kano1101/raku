@@ -99,12 +99,10 @@ class ItemScraper
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
     # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
-    # RakumaBrowser.wait_sell_page_starting(browser)
-    browser.wait
+    RakumaBrowser.wait_sell_page_starting(browser)
     # 古いページを抜けたらページが完全に読み込まれるまで一旦待機し「続きを見る」全展開
-    RakumaBrowser.wait_page_load_complete(browser)
     RakumaBrowser.next_button_all_open(browser)
-    # RakumaBrowser.wait_while_next_button_present(browser)
+    browser.wait
     
     urls = get_urls_from_network(browser)
     puts "全#{urls.count}商品見つかりました。"

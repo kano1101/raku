@@ -12,7 +12,7 @@ class ItemRegister
   
   # 念のため入る前にページが完全にロードされた状態にしておいてください。
   def self.item_index(browser, item)
-    RakumaBrowser.wait_page_load_complete(browser)
+    # RakumaBrowser.wait_page_load_complete(browser)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
     match_index(scan_id_array, id)
@@ -126,44 +126,36 @@ class ItemRegister
 
   def self.relist(browser, items)
     puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
+    
+    # 「出品した商品」ページを開いて
+    RakumaBrowser.goto_sell(browser)
     items.each do |item|
+      # 中断したい場合
       self.exit_if_finishing
 
-      # TODO : 仕様確認
-      # browser.html =~ /<title>(.+?)<\/title>/
-      # p '出品したページに入る前の状態(出品した商品でなければOK) : ' + Regexp.last_match(0).to_s
-      
-      # 「出品した商品」ページを開いて
-      RakumaBrowser.goto_sell(browser)
       # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
-      # RakumaBrowser.wait_sell_page_starting(browser)
-      browser.wait # 成功で出品した商品に入るのでもうこれにする
-      # 古いページを抜けたらページが完全に読み込まれるまで一旦待機する
-      RakumaBrowser.wait_page_load_complete(browser)
+      RakumaBrowser.wait_sell_page_starting(browser)
 
       # 「続きを見る」全展開する
       RakumaBrowser.next_button_all_open(browser)
 
       # itemの再出品
-      # TODO : 処理速度によっては（仮定ではあるが全展開が問題を生んで）「出品したページ」がロード中になったかもしれないのでつぶしたい
-      # browser.wait # ブラウザが遅いため待つ（結局これもしてみた 。）
-      # RakumaBrowser.wait_page_load_complete(browser) # ここでそれをつぶすことにしている（本当に大丈夫なのか？）
-      # RakumaBrowser.wait_while_next_button_present(browser)
+      # TODO : 処理速度によっては「出品した商品」ページがロード中になるのかもしれないのでつぶしたい
+      browser.wait # ブラウザが遅いため待つ
       
       idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
-      # nil、つまりリストにないというのは、ロードが済んでいないもしくは売れたか削除されたことを表している
-      # p '(self.item_indexの結果)idx = ' + idx.to_s
 
       # ロード遅れは事前に確実に行うよう対処すれば良い
+      # これがnil、つまりリストにないというのは、ロードが済んでいないもしくは売れたか削除されたことを表している
       if idx
         target = browser.div(id: 'selling-container').div(class: 'media', index: idx)
         target.scroll.to
-
-        # 既削除、売れ済の場合はdeleteした結果うまくいったかで判断できる
+        # deleteした結果がうまくいったかで既削除、売れ済を判断できる
         if self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
           RakumaBrowser.goto_new(browser)
           self.regist(browser, item)
           puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
+          RakumaBrowser.goto_sell(browser)
         else
           puts "skip (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
         end
