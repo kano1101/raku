@@ -98,7 +98,7 @@ class RakumaBrowser
   end
   def self.wait_while_next_button_present(browser, count)
     browser.wait_while(timeout: 3600) do
-      navs(class: 'pagination_more').count == count
+      browser.navs(class: 'pagination_more').count == count
       # self.next_button_span(browser).present? # 次を開くボタンがいなくなったら偽が返るので次へ進むことができます
     end
   end
