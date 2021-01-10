@@ -2,6 +2,7 @@
 require 'yaml'
 require 'watir'
 require_relative 'main'
+require_relative 'rblib/best'
 
 class RakumaBrowser
   
@@ -110,17 +111,18 @@ class RakumaBrowser
   def self.next_button_all_open(browser)
     self.wait_until_page_load_completed(browser)
     return nil if browser.div(id: 'selling-container').navs.count == 0
+    media_count = Best.new(browser.div(id: 'selling-container').divs(class: 'media').count)
     opened_count = 0
     loop do
       browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).span.a.click
+      browser.wait_until(timeout: 3600) do # 商品表示数が増加したら次へ進むことができるようにした
+        media_count.overwrite_if_over(browser.div(id: 'selling-container').divs(class: 'media').count)
+      end
       
       opened_count += 1
       continuity = self.wait_for_continuity(browser, opened_count)
       case continuity
       when :finish
-        p self.has_page_load_completed(browser)
-        sleep(10)
-        p self.has_page_load_completed(browser)
         break
       when :continue
       end
