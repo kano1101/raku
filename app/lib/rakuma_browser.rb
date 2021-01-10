@@ -86,7 +86,7 @@ class RakumaBrowser
     browser.span(id: 'selling-container_button')
   end
   def self.next_button_anchor(browser)
-    self.next_button_span(browser).a
+    self.next_button_span(browser).a(index: 0)
   end
   def self.had_page_load_completed(browser)
     browser.execute_script("return document.readyState;") == "complete"
@@ -97,17 +97,20 @@ class RakumaBrowser
     end
   end
   def self.wait_while_next_button_present(browser, count)
+    p browser.navs(class: 'pagination_more').count
     browser.wait_while(timeout: 3600) do
+      p browser.navs(class: 'pagination_more').count
       browser.navs(class: 'pagination_more').count == count
       # self.next_button_span(browser).present? # 次を開くボタンがいなくなったら偽が返るので次へ進むことができます
     end
+    p browser.navs(class: 'pagination_more').count
   end
   
   def self.next_button_all_open(browser)
     opened_count = 1
     # 「続きを見る」最後まで全展開
     while self.next_button_anchor(browser).exists? # 最後まで「続きを見る」を開くために存在を確認している
-      self.next_button_anchor(browser).click # 「続きを見る」をクリック
+      self.next_button_anchor(browser).fire_event :onclick # 「続きを見る」をクリック
       self.wait_while_next_button_present(browser, opened_count) # 「続きを見る」が消えるのを待ち次へ（すでに次の「続きを見る」が表示されていたらここでTimeoutを吐くだろう）
       opened_count += 1
       #browser.wait
