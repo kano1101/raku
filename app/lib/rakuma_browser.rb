@@ -81,7 +81,7 @@ class RakumaBrowser
       browser.html =~ /<title>出品した商品｜ラクマ<\/title>/ # 表示がsell_pageとわかれば真が返るのでそうなれば次へ進むことができます
     end
   end
-  
+
   def self.next_button_span(browser)
     browser.span(id: 'selling-container_button')
   end
@@ -107,6 +107,7 @@ class RakumaBrowser
     while self.next_button_anchor(browser).exists? # 最後まで「続きを見る」を開くために存在を確認している
       self.next_button_anchor(browser).click # 「続きを見る」をクリック
       self.wait_while_next_button_present(browser) # 「続きを見る」が消えるのを待ち次へ（すでに次の「続きを見る」が表示されていたらここでTimeoutを吐くだろう）
+      browser.wait
     end
   end
 
