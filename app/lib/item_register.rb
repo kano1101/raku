@@ -154,11 +154,11 @@ class ItemRegister
       # itemの再出品
       # TODO : 処理速度によっては（仮定ではあるが全展開が問題を生んで）「出品したページ」がロード中になったかもしれないのでつぶしたい
       RakumaBrowser.wait_page_load_complete(browser) # ここでそれをつぶすことにしている（本当に大丈夫なのか？）
-      # browser.wait # ブラウザが遅いため待つ（結局こっちにしてみた 。）
+      browser.wait # ブラウザが遅いため待つ（結局こっちにしてみた 。）
       
       idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
-      browser.div(id: 'selling-container').div(class: 'media', index: idx).scroll.to
       p '(self.item_indexの結果)idx = ' + idx.to_s
+      # browser.div(id: 'selling-container').div(class: 'media', index: idx).scroll.to
       
       case self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
       # 結果によってはユーザーが意図的に商品を削除したか、プログラム実行時点ですでに売れた場合が考えられる
