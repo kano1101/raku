@@ -110,7 +110,9 @@ class RakumaBrowser
   end
   
   def self.next_button_all_open(browser)
-    media_count = Best.new(browser.div(id: 'selling-container').divs(class: 'media').count) # divs.countで待ってくれないのだろうか（希望）
+    divs_count = browser.div(id: 'selling-container').divs(class: 'media').count
+    p "browser.div(id: 'selling-container').divs(class: 'media').count = #{divs_count}"
+    media_count = Best.new(divs_count) # divs.countで待ってくれないのだろうか（希望）
     return nil if browser.div(id: 'selling-container').navs.count == 0
     opened_count = 0
     loop do
