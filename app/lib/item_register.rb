@@ -152,7 +152,7 @@ class ItemRegister
       
       idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
       # nil、つまりリストにないというのは、ロードが済んでいないもしくは売れたか削除されたことを表している
-      p '(self.item_indexの結果)idx = ' + idx.to_s
+      # p '(self.item_indexの結果)idx = ' + idx.to_s
 
       # ロード遅れは事前に確実に行うよう対処すれば良い
       if idx
