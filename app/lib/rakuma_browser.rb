@@ -97,7 +97,7 @@ class RakumaBrowser
       p self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
     end
   end
-  def self.wait_for_continuity(browser, count)
+  def self.wait_for_continuity(browser, opened_count)
     continuity = nil
     browser.wait_until(timeout: 3600) do
       continuity ||= :finish if browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).spans.count == 0
@@ -118,6 +118,9 @@ class RakumaBrowser
       continuity = self.wait_for_continuity(browser, opened_count)
       case continuity
       when :finish
+        p self.has_page_load_completed(browser)
+        sleep(10)
+        p self.has_page_load_completed(browser)
         break
       when :continue
       end
