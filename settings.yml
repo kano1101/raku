@@ -1,5 +1,5 @@
 ---
 submax: '30'
-conmin: '120'
+conmin: '60'
 submin: '15'
-conmax: '240'
+conmax: '120'
