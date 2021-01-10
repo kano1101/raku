@@ -110,15 +110,16 @@ class RakumaBrowser
   def self.next_button_all_open(browser)
     self.wait_until_page_load_completed(browser)
     return nil if browser.div(id: 'selling-container').navs.count == 0
-    opened_count = 1
+    opened_count = 0
     loop do
       browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).span.a.click
+      
+      opened_count += 1
       continuity = self.wait_for_continuity(browser, opened_count)
       case continuity
       when :finish
         break
       when :continue
-        opened_count += 1
       end
     end
     puts "リストは#{opened_count}回展開されました。"
