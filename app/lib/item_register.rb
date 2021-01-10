@@ -153,9 +153,9 @@ class ItemRegister
 
       # itemの再出品
       # TODO : 処理速度によっては（仮定ではあるが全展開が問題を生んで）「出品したページ」がロード中になったかもしれないのでつぶしたい
+      # browser.wait # ブラウザが遅いため待つ（結局これもしてみた 。）
       # RakumaBrowser.wait_page_load_complete(browser) # ここでそれをつぶすことにしている（本当に大丈夫なのか？）
-      # browser.wait # ブラウザが遅いため待つ（結局こっちにしてみた 。）
-      RakumaBrowser.wait_while_next_button_present(browser)
+      # RakumaBrowser.wait_while_next_button_present(browser)
       
       idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
       # nil、つまりリストにないというのは、ロードが済んでいないもしくは売れたか削除されたことを表している

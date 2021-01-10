@@ -104,7 +104,7 @@ class ItemScraper
     # 古いページを抜けたらページが完全に読み込まれるまで一旦待機し「続きを見る」全展開
     RakumaBrowser.wait_page_load_complete(browser)
     RakumaBrowser.next_button_all_open(browser)
-    RakumaBrowser.wait_while_next_button_present(browser)
+    # RakumaBrowser.wait_while_next_button_present(browser)
     
     urls = get_urls_from_network(browser)
     puts "全#{urls.count}商品見つかりました。"
