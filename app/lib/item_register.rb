@@ -25,16 +25,11 @@ class ItemRegister
   end
   
   # 商品が存在しない(売れたまたは削除された)場合やidxが不正であればfalseを返すので、スキップ対応してください
-  # idxに整数以外を入れると動作しません
+  # idxに正の整数以外を入れると動作しません
   def self.delete(browser, item, idx)
-    p 'idx = ' + idx.to_s
     return false unless idx
-    # TODO : タイムアウトエラーの原因はここなので、次回にはつぶします
-    p 'f1' + browser.alert.present?.to_s
+    # TODO : タイムアウトエラーの原因ここ idxが不正であることによりそう
     browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-    p 'torf2' + browser.alert.present?.to_s
-    # TODO : ここでタイムアウトエラーの例外が発生することがある
-    # おそらく一個前のa#fire_event :onclickの実行が、ページに表示がされるより前に実行されてしまったことによりそう
     al = browser.alert
     begin
       waiting_al = al.wait_until(timeout: 30, &:present?)
@@ -42,9 +37,7 @@ class ItemRegister
       p 'my timeout'
       raise
     end
-    p 't3' + browser.alert.present?.to_s
-    p waiting_al.ok # ページの遷移先の<title>タグを見ると成功したかがわかる
-    p 'f4' + browser.alert.present?.to_s
+    waiting_al.ok # ページの遷移先の<title>タグを見ると成功したかがわかる
     return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
@@ -172,7 +165,7 @@ class ItemRegister
           self.regist(browser, item)
           puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
         else
-          puts "失敗 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
+          puts "skip (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
         end
       else
         puts "失敗 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたがリストにないため削除できませんでした。"
