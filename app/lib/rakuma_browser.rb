@@ -96,18 +96,21 @@ class RakumaBrowser
       self.had_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
     end
   end
-  def self.wait_while_next_button_present(browser)
+  def self.wait_while_next_button_present(browser, count)
     browser.wait_while(timeout: 3600) do
-      self.next_button_span(browser).present? # 次を開くボタンがいなくなったら偽が返るので次へ進むことができます
+      navs(class: 'pagination_more').count == count
+      # self.next_button_span(browser).present? # 次を開くボタンがいなくなったら偽が返るので次へ進むことができます
     end
   end
   
   def self.next_button_all_open(browser)
+    opened_count = 1
     # 「続きを見る」最後まで全展開
     while self.next_button_anchor(browser).exists? # 最後まで「続きを見る」を開くために存在を確認している
       self.next_button_anchor(browser).click # 「続きを見る」をクリック
-      self.wait_while_next_button_present(browser) # 「続きを見る」が消えるのを待ち次へ（すでに次の「続きを見る」が表示されていたらここでTimeoutを吐くだろう）
-      browser.wait
+      self.wait_while_next_button_present(browser, opened_count) # 「続きを見る」が消えるのを待ち次へ（すでに次の「続きを見る」が表示されていたらここでTimeoutを吐くだろう）
+      opened_count += 1
+      #browser.wait
     end
   end
 
