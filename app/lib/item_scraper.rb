@@ -106,6 +106,7 @@ class ItemScraper
     RakumaBrowser.next_button_all_open(browser)
     
     urls = get_urls_from_network(browser)
+    puts "全#{urls.count}商品見つかりました。"
     items = urls.map.with_index do |url_hash, idx|
       puts "#{idx + 1}商品目を読み込んでいます。"
       make_item_from_network(browser, url_hash)

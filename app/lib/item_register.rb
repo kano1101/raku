@@ -30,9 +30,12 @@ class ItemRegister
     return false unless idx
     # TODO : タイムアウトエラーの原因はここなので、次回にはつぶします
     browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
+#    browser.wait
     # TODO : ここでタイムアウトエラーの例外が発生することがある
     # おそらく一個前のa#fire_event :onclickの実行が、ページに表示がされるより前に実行されてしまったことによりそう
-    browser.alert.wait_until(timeout: 3600, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    p al = browser.alert
+    p waiting_al = al.wait_until(timeout: 3600, &:present?)
+    p waiting_al.ok # ページの遷移先の<title>タグを見ると成功したかがわかる
     return false if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
@@ -141,15 +144,16 @@ class ItemRegister
 
       # itemの再出品
       # TODO : 処理速度によっては（仮定ではあるが全展開が問題を生んで）「出品したページ」がロード中になったかもしれないのでつぶしたい
-      RakumaBrowser.wait_page_load_complete(browser) # ここでそれをつぶすことにしている（本当に大丈夫なのか？）
+      # RakumaBrowser.wait_page_load_complete(browser) # ここでそれをつぶすことにしている（本当に大丈夫なのか？）
+      browser.wait # ブラウザが遅いため待つ（結局こっちにしてみた。）
       idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
       if idx # そのためリストにあれば再出品が実行される
         self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
         RakumaBrowser.goto_new(browser)
         self.regist(browser, item)
-        puts '成功 : [' + item['name'] + ']の再出品が完了しました。'
+        puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
       else # なぜリストにないかというと、ユーザーが意図的に商品を削除したか、プログラム実行時点ですでに売れた場合が考えられる
-        puts '失敗 : [' + item['name'] + ']の商品の再出品を試みましたがリストにない(売れたまたはすでに削除されている)ため削除できませんでした。'
+        puts "失敗 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたがリストにない(売れたまたはすでに削除されている)ため削除できませんでした。"
       end
     end
   end
