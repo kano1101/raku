@@ -5,29 +5,36 @@ require_relative 'csv_writer'
 require_relative 'rakuma_browser'
 
 class ItemRegister
+  
   def self.match_index(str_array, str)
     str_array.index { |e_str| e_str == str }
   end
+  
+  # 念のため入る前にページが完全にロードされた状態にしておいてください。
   def self.item_index(browser, item)
+    RakumaBrowser.wait_page_load_complete(browser)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
     match_index(scan_id_array, id)
   end
 
+  # このメソッドで、商品削除に失敗してしまったかどうかを確認できる
   def self.is_item_deleted(browser)
-    /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html rescue return false
+    # 成功していたら/<title>出品した商品｜ラクマ<\/title>/がマッチする
+    /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html
   end
-
-  # ラクマ上に商品が存在し、削除に成功した場合その商品のインデックスを返す。
-  # 存在せず(売れたまたは削除された)場合はfalseを返すので、スキップ対応してください。
+  
+  # 商品が存在しない(売れたまたは削除された)場合やidxが不正であればfalseを返すので、スキップ対応してください
+  # idxに整数以外を入れると動作しません
   def self.delete(browser, item, idx)
-    if idx
-      browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-      browser.alert.wait_until(timeout: 3600, &:present?).ok
-      if is_item_deleted(browser) then return false end# 削除失敗の意味でfalseを返す
-      browser.wait
-    end
-    idx
+    return false unless idx
+    # TODO : タイムアウトエラーの原因はここなので、次回にはつぶします
+    browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
+    # TODO : ここでタイムアウトエラーの例外が発生することがある
+    # おそらく一個前のa#fire_event :onclickの実行が、ページに表示がされるより前に実行されてしまったことによりそう
+    browser.alert.wait_until(timeout: 3600, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    return false if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
+    true
   end
 
   def self.exe_query_selector(browser, input_or_select, item_key, item)
@@ -38,7 +45,16 @@ class ItemRegister
     # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
     $main.wait_a_minute(browser, word, item)
     browser.button(:id => word).click
-    browser.wait_while(timeout: 3600) { |b| b.button(:id => word).present? }
+    begin
+      browser.wait_while(timeout: 3600) { |b| b.button(:id => word).present? }
+    rescue Watir::Wait::TimeoutError => e
+      p e.class
+      p e.message
+      p word
+      p item
+      # binding.pry
+      raise
+    end
     browser.wait
   end
   
@@ -107,22 +123,35 @@ class ItemRegister
     puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
     items.each do |item|
       self.exit_if_finishing
+
+      # TODO : 仕様確認
+      # browser.html =~ /<title>(.+?)<\/title>/
+      # p '出品したページに入る前の状態(出品した商品でなければOK) : ' + Regexp.last_match(0).to_s
+      
+      # 「出品した商品」ページを開いて
       RakumaBrowser.goto_sell(browser)
-      browser.a(id: 'ga_click_delete').wait_until(timeout: 3600, &:present?)
-      browser.wait
-      while browser.span(id: 'selling-container_button').a.exists?
-        browser.span(id: 'selling-container_button').a.click
-        browser.wait_while(timeout: 3600) { |b| b.span(id: 'selling-container_button').present? }
-        browser.wait
-      end
-      idx = self.item_index(browser, item)
-      if self.delete(browser, item, idx)
+      # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
+      # RakumaBrowser.wait_sell_page_starting(browser)
+      browser.wait # 成功で出品した商品に入るのでもうこれにする
+      # 古いページを抜けたらページが完全に読み込まれるまで一旦待機する
+      RakumaBrowser.wait_page_load_complete(browser)
+
+      # 「続きを見る」全展開する
+      RakumaBrowser.next_button_all_open(browser)
+
+      # itemの再出品
+      # TODO : 処理速度によっては（仮定ではあるが全展開が問題を生んで）「出品したページ」がロード中になったかもしれないのでつぶしたい
+      RakumaBrowser.wait_page_load_complete(browser) # ここでそれをつぶすことにしている（本当に大丈夫なのか？）
+      idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
+      if idx # そのためリストにあれば再出品が実行される
+        self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
         RakumaBrowser.goto_new(browser)
         self.regist(browser, item)
-        puts '成功 : ' + item['name'] + 'の出品と削除が完了しました。'
-      else
-        puts '失敗 : ' + item['name'] + 'の商品の削除を試みましたがリストにない(売れたまたは削除された)ため失敗しました。'
+        puts '成功 : [' + item['name'] + ']の再出品が完了しました。'
+      else # なぜリストにないかというと、ユーザーが意図的に商品を削除したか、プログラム実行時点ですでに売れた場合が考えられる
+        puts '失敗 : [' + item['name'] + ']の商品の再出品を試みましたがリストにない(売れたまたはすでに削除されている)ため削除できませんでした。'
       end
     end
   end
+  
 end

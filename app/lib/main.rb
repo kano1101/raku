@@ -44,7 +44,7 @@ class Main
   attr_reader :is_finishing
   
   def wait_a_minute(browser, scene, item)
-    time = item[scene]
+    time = item[scene] # ItemScraper.make_item_from_network参照のこと
     loop do
       sleep(1)
       finish_relister if getch
@@ -66,7 +66,7 @@ class Main
     $main.start_relister
     items = CsvWriter.restore_csv
     puts 'CSVファイルを読み込みました。'
-    # TODO : Viewerで実行有無の調整をできるようにしたい
+    # Selectorで実行有無の調整をできるようにしてある
     items = Scheduler.remove_if_not_scheduled(items)
     items = Scheduler.add_schedule(items)
     Scheduler.print_schedule(items)
