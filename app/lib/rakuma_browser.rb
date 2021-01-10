@@ -110,15 +110,22 @@ class RakumaBrowser
   end
   
   def self.next_button_all_open(browser)
-    divs_count = browser.div(id: 'selling-container').divs(class: 'media').count
-    p "browser.div(id: 'selling-container').divs(class: 'media').count = #{divs_count}"
-    media_count = Best.new(divs_count) # divs.countで待ってくれないのだろうか（希望）
+    media_count = Best.new(0)
+    browser.wait_until(timeout: 3600) do # 0商品以上が表示されれば次へ進むことができるようにして処理速度問題に対処
+      divs_count = browser.div(id: 'selling-container').divs(class: 'media').count
+      p "browser.div(id: 'selling-container').divs(class: 'media').count = #{divs_count}"
+      media_count.overwrite_if_over(divs_count)
+    end
     return nil if browser.div(id: 'selling-container').navs.count == 0
+    
     opened_count = 0
     loop do
       browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).span.a.click
+      
       browser.wait_until(timeout: 3600) do # 商品表示数が増加したら次へ進むことができるようにした
-        media_count.overwrite_if_over(browser.div(id: 'selling-container').divs(class: 'media').count)
+        divs_count = browser.div(id: 'selling-container').divs(class: 'media').count
+        p "browser.div(id: 'selling-container').divs(class: 'media').count = #{divs_count}"
+        media_count.overwrite_if_over(divs_count)
       end
       
       opened_count += 1
