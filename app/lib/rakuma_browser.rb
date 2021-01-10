@@ -89,13 +89,14 @@ class RakumaBrowser
   def self.next_button_anchor(browser)
     self.next_button_span(browser).a(index: 0)
   end
+
+  # TODO : うまく動作していない可能性あり
   def self.has_page_load_completed(browser)
     browser.execute_script("return document.readyState;") == "complete"
   end
   def self.wait_until_page_load_completed(browser)
     browser.wait_until(timeout: 3600) do
-      print 'ページが完全に読み込まれたらtrue : '
-      p self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
+      self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
     end
   end
   def self.wait_for_continuity(browser, opened_count)
@@ -109,9 +110,8 @@ class RakumaBrowser
   end
   
   def self.next_button_all_open(browser)
-    self.wait_until_page_load_completed(browser)
+    media_count = Best.new(browser.div(id: 'selling-container').divs(class: 'media').count) # divs.countで待ってくれないのだろうか（希望）
     return nil if browser.div(id: 'selling-container').navs.count == 0
-    media_count = Best.new(browser.div(id: 'selling-container').divs(class: 'media').count)
     opened_count = 0
     loop do
       browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).span.a.click
