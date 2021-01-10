@@ -29,13 +29,16 @@ class ItemRegister
   def self.delete(browser, item, idx)
     return false unless idx
     # TODO : タイムアウトエラーの原因はここなので、次回にはつぶします
+    p '1' + browser.alert.present?.to_s
     browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-#    browser.wait
+    p '2' + browser.alert.present?.to_s
     # TODO : ここでタイムアウトエラーの例外が発生することがある
     # おそらく一個前のa#fire_event :onclickの実行が、ページに表示がされるより前に実行されてしまったことによりそう
     p al = browser.alert
     p waiting_al = al.wait_until(timeout: 3600, &:present?)
+    p '3' + browser.alert.present?.to_s
     p waiting_al.ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    p '4' + browser.alert.present?.to_s
     return false if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
