@@ -98,15 +98,16 @@ class ItemScraper
   
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    browser.a(id: 'ga_click_delete').wait_until(timeout: 3600, &:present?)
+    # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
+    # RakumaBrowser.wait_sell_page_starting(browser)
     browser.wait
-    while browser.span(id: 'selling-container_button').a.exists?
-      browser.span(id: 'selling-container_button').a.click
-      browser.wait_while(timeout: 3600) { |b| b.span(id: 'selling-container_button').present? }
-      browser.wait
-    end
+    # 古いページを抜けたらページが完全に読み込まれるまで一旦待機し「続きを見る」全展開
+    RakumaBrowser.wait_page_load_complete(browser)
+    RakumaBrowser.next_button_all_open(browser)
+    
     urls = get_urls_from_network(browser)
-    items = urls.map do |url_hash|
+    items = urls.map.with_index do |url_hash, idx|
+      puts "#{idx + 1}商品目を読み込んでいます。"
       make_item_from_network(browser, url_hash)
     end
     keys = 1.upto(4).map { |n| 'img' + n.to_s }
