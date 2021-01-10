@@ -89,45 +89,51 @@ class RakumaBrowser
   def self.next_button_anchor(browser)
     self.next_button_span(browser).a(index: 0)
   end
+  def self.div_selling(browser)
+    browser.div(id: 'selling-container')
+  end
+  def self.divs_media_count(browser)
+    self.div_selling(browser).divs(class: 'media').count
+  end
+  def self.nav_with_index(browser, idx)
+    self.div_selling(browser).nav(class: 'pagination_more', index: idx)
+  end
 
   # TODO : うまく動作していない可能性あり
-  def self.has_page_load_completed(browser)
-    browser.execute_script("return document.readyState;") == "complete"
-  end
-  def self.wait_until_page_load_completed(browser)
-    browser.wait_until(timeout: 3600) do
-      self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
-    end
-  end
+  # def self.has_page_load_completed(browser)
+  #   browser.execute_script("return document.readyState;") == "complete"
+  # end
+  # def self.wait_until_page_load_completed(browser)
+  #   browser.wait_until(timeout: 3600) do
+  #     self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
+  #   end
+  # end
   def self.wait_for_continuity(browser, opened_count)
     continuity = nil
     browser.wait_until(timeout: 3600) do
-      continuity ||= :finish if browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).spans.count == 0
-      continuity ||= :continue if browser.div(id: 'selling-container').navs.count == opened_count + 1
+      continuity ||= :finish if self.nav_with_index(browser, opened_count).spans.count == 0
+      continuity ||= :continue if self.div_selling(browser).navs.count == opened_count + 1
       continuity
     end
     continuity
   end
-  
+
+  def self.wait_until_overwrite(browser, best)
+    browser.wait_until(timeout: 3600) do
+      divs_count = self.divs_media_count(browser)
+      best.overwrite_if_over(divs_count)
+    end
+  end
+
+  # 「続きを見る」全展開
   def self.next_button_all_open(browser)
     media_count = Best.new(0)
-    browser.wait_until(timeout: 3600) do # 0商品以上が表示されれば次へ進むことができるようにして処理速度問題に対処
-      divs_count = browser.div(id: 'selling-container').divs(class: 'media').count
-      p "browser.div(id: 'selling-container').divs(class: 'media').count = #{divs_count}"
-      media_count.overwrite_if_over(divs_count)
-    end
-    return nil if browser.div(id: 'selling-container').navs.count == 0
-    
+    self.wait_until_overwrite(browser, media_count) # 0商品以上が表示されれば次へ進むことができるようにして処理速度問題に対処
+    return nil if self.div_selling(browser).navs.count == 0
     opened_count = 0
     loop do
-      browser.div(id: 'selling-container').nav(class: 'pagination_more', index: opened_count).span.a.click
-      
-      browser.wait_until(timeout: 3600) do # 商品表示数が増加したら次へ進むことができるようにした
-        divs_count = browser.div(id: 'selling-container').divs(class: 'media').count
-        p "browser.div(id: 'selling-container').divs(class: 'media').count = #{divs_count}"
-        media_count.overwrite_if_over(divs_count)
-      end
-      
+      self.nav_with_index(browser, opened_count).span.a.click
+      self.wait_until_overwrite(browser, media_count) # 商品表示数が増加したら次へ進むことができるようにした
       opened_count += 1
       continuity = self.wait_for_continuity(browser, opened_count)
       case continuity
@@ -136,7 +142,6 @@ class RakumaBrowser
       when :continue
       end
     end
-    puts "リストは#{opened_count}回展開されました。"
   end
 
 end
