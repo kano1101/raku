@@ -151,6 +151,8 @@ class ItemSelector
     frame = Tk::BWidget::ScrollableFrame.new(window, constrainedwidth: true, height: 864)
     window.set_widget(frame)
     row_frame = frame.get_frame
+
+    base.bind_all('MouseWheel', proc { |e| frame.yview(:scroll, -e.delta / 2, :units)})
     
     toggle_top_hashs = pack_matrix(row_frame, items)
 
