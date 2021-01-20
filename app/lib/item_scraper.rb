@@ -98,10 +98,15 @@ class ItemScraper
   
   def self.download(browser)
     RakumaBrowser.goto_sell(browser)
-    puts 'リストを全て開いて最後まで展開したらEnterを押してください。'
-    gets
+    # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
+    RakumaBrowser.wait_sell_page_starting(browser)
+    # 古いページを抜けたらページが完全に読み込まれるまで一旦待機し「続きを見る」全展開
+    RakumaBrowser.next_button_all_open(browser)
+    
     urls = get_urls_from_network(browser)
-    items = urls.map do |url_hash|
+    puts "全#{urls.count}商品見つかりました。"
+    items = urls.map.with_index do |url_hash, idx|
+      puts "#{idx + 1}商品目を読み込んでいます。"
       make_item_from_network(browser, url_hash)
     end
     keys = 1.upto(4).map { |n| 'img' + n.to_s }

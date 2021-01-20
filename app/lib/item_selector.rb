@@ -52,12 +52,29 @@ class Row
       bool_str.to_bool ? '実行' : '停止'
     end
 
-    def add_toggle(parent, element)
-      v = TkVariable.new(to_which(element))
-      t = TkButton.new(parent, textvariable: v, anchor: :c)
-      t.command(proc { element.replace((!element.to_bool).to_s); v.value = to_which(element) })
-      t.font({ size: LARGE_FONT_SIZE })
-      pack(t)
+    def set_variable(bool_str, set_bool, variable)
+      bool_str.replace(set_bool.to_s); variable.value = to_which(bool_str)
+    end
+    def toggle(bool_str, variable)
+      set_variable(bool_str, !bool_str.to_bool, variable)
+    end
+    def toggle_all_exec(variables_and_bool_strs)
+      variables_and_bool_strs.each do |hash|
+        set_variable(hash[:scheduled], true, hash[:variable])
+      end
+    end
+    def toggle_all_stop(variables_and_bool_strs)
+      variables_and_bool_strs.each do |hash|
+        set_variable(hash[:scheduled], false, hash[:variable])
+      end
+    end
+    
+    def add_toggle(parent, bool_str)
+      v = TkVariable.new(to_which(bool_str))
+      b = TkButton.new(parent, textvariable: v, anchor: :c)
+      b.command(proc { toggle(bool_str, v) })
+      b.font({ size: LARGE_FONT_SIZE })
+      pack(b)
     end
     def add_label(parent, element)
       l = TkLabel.new(parent, text: element, anchor: :c)
@@ -71,11 +88,12 @@ class Row
     end
     
     def make_row_toggle(keys, frame, item)
-      keys.each do |key|
+      keys.map do |key|
         element = add_toggle(frame, item[key])
         length = COLUMN_WIDTHS[ALL_KEYS.index(key)]
         element.configure(wraplength: length)
         place(element, ALL_KEYS.index(key))
+        { scheduled: item[key], variable: element.cget(:textvariable)  }
       end
     end
     def make_row_label(keys, frame, item)
@@ -101,10 +119,11 @@ class Row
     
     def make_row(parent, item)
       frame = make_frame(parent)
-      make_row_toggle(TOGGLE_KEYS, frame, item)
+      toggle_key_hashs = make_row_toggle(TOGGLE_KEYS, frame, item)
       make_row_label(KEYS, frame, item)
       make_row_image(IMG_KEYS, frame, item)
       make_row_label(OTHER_KEYS, frame, item)
+      toggle_key_hashs[0]
     end
     def make_column_label(parent)
       frame = make_frame(parent, is_column_label: true)
@@ -135,10 +154,12 @@ class ItemSelector
 
     base.bind_all('MouseWheel', proc { |e| frame.yview(:scroll, -e.delta, :units)})
     
-    pack_matrix(row_frame, items)
+    toggle_top_hashs = pack_matrix(row_frame, items)
 
     button_frame = TkFrame.new(base).pack(side: :top)
     button_info = [
+      { text: '全実行', command: proc { Row.toggle_all_exec(toggle_top_hashs) } },
+      { text: '全停止', command: proc { Row.toggle_all_stop(toggle_top_hashs) } },
       { text: '決　定', command: proc { CsvWriter.generate_csv(items); base.destroy } },
       { text: '閉じる', command: proc { base.destroy } },
     ]
@@ -152,7 +173,7 @@ class ItemSelector
   end
   def pack_matrix(parent, items)
     Row.make_column_label(parent)
-    items.each do |item|
+    items.map do |item|
       Row.make_row(parent, item)
     end
   end

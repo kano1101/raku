@@ -5,29 +5,31 @@ require_relative 'csv_writer'
 require_relative 'rakuma_browser'
 
 class ItemRegister
+  
   def self.match_index(str_array, str)
     str_array.index { |e_str| e_str == str }
   end
+  
+  # 念のため入る前にページが完全にロードされた状態にしておいてください。
   def self.item_index(browser, item)
+    # RakumaBrowser.wait_page_load_complete(browser)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
     match_index(scan_id_array, id)
   end
 
   def self.is_item_deleted(browser)
-    /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html rescue return false
+    /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html
   end
-
-  # ラクマ上に商品が存在し、削除に成功した場合その商品のインデックスを返す。
-  # 存在せず(売れたまたは削除された)場合はfalseを返すので、スキップ対応してください。
+  
+  # 商品が存在しない(売れたまたは削除された)場合はnil、idxが不正であればfalseを返すので、スキップ対応してください
+  # idxに正の整数以外を入れると動作しません
   def self.delete(browser, item, idx)
-    if idx
-      browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-      browser.alert.wait_until(&:present?).ok
-      if is_item_deleted(browser) then return false end# 削除失敗の意味でfalseを返す
-      browser.wait
-    end
-    idx
+    return false unless idx
+    browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
+    browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
+    true
   end
 
   def self.exe_query_selector(browser, input_or_select, item_key, item)
@@ -38,7 +40,16 @@ class ItemRegister
     # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
     $main.wait_a_minute(browser, word, item)
     browser.button(:id => word).click
-    browser.wait_while { |b| b.button(:id => word).present? }
+    begin
+      browser.wait_while(timeout: 3600) { |b| b.button(:id => word).present? }
+    rescue Watir::Wait::TimeoutError => e
+      p e.class
+      p e.message
+      p word
+      p item
+      # binding.pry
+      raise
+    end
     browser.wait
   end
   
@@ -105,17 +116,37 @@ class ItemRegister
 
   def self.relist(browser, items)
     puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
+    
+    # 「出品した商品」ページを開いて
+    RakumaBrowser.goto_sell(browser)
     items.each do |item|
+      # 中断したい場合
       self.exit_if_finishing
-      RakumaBrowser.goto_sell(browser)
-      idx = self.item_index(browser, item)
-      if self.delete(browser, item, idx)
-        RakumaBrowser.goto_new(browser)
-        self.regist(browser, item)
-        puts '成功 : ' + item['name'] + 'の出品と削除が完了しました。'
+
+      # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
+      RakumaBrowser.wait_sell_page_starting(browser)
+
+      # 「続きを見る」全展開する
+      RakumaBrowser.next_button_all_open(browser)
+
+      # itemの再出品
+      idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
+      if idx
+        target = browser.div(id: 'selling-container').div(class: 'media', index: idx)
+        target.scroll.to
+        # deleteした結果がうまくいったかで既削除、売れ済を判断できる
+        if self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
+          RakumaBrowser.goto_new(browser)
+          self.regist(browser, item)
+          puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
+          RakumaBrowser.goto_sell(browser)
+        else
+          puts "skip (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
+        end
       else
-        puts '失敗 : ' + item['name'] + 'の商品の削除を試みましたがリストにない(売れたまたは削除された)ため失敗しました。'
+        puts "失敗 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたがリストにないため削除できませんでした。"
       end
     end
   end
+  
 end
