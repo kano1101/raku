@@ -152,7 +152,7 @@ class ItemSelector
     window.set_widget(frame)
     row_frame = frame.get_frame
 
-    base.bind_all('MouseWheel', proc { |e| frame.yview(:scroll, -e.delta, :units)})
+    base.bind_all('MouseWheel', proc { |e| frame.yview(:scroll, -e.delta / 2, :units)})
     
     toggle_top_hashs = pack_matrix(row_frame, items)
 
