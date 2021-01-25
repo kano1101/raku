@@ -39,16 +39,23 @@ class ItemRegister
   def self.wait_and_button_click(browser, word, item)
     # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
     $main.wait_a_minute(browser, word, item)
-    browser.button(:id => word).click
+    retry_count = 0
     begin
-      browser.wait_while(timeout: 3600) { |b| b.button(:id => word).present? }
+      browser.button(:id => word).click
+      browser.wait_while(timeout: 60) { |b| b.button(:id => word).present? }
     rescue Watir::Wait::TimeoutError => e
-      p e.class
-      p e.message
-      p word
-      p item
-      # binding.pry
-      raise
+      retry_count += 1
+      if retry_count <= 3
+        puts "retryします。 (#{retry_count}回目)"
+        retry
+      else
+        p 'ボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
+        p e.class
+        p e.message
+        p word
+        p item
+        raise
+      end
     end
     browser.wait
   end
