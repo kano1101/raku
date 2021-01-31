@@ -26,8 +26,22 @@ class ItemRegister
   # idxに正の整数以外を入れると動作しません
   def self.delete(browser, item, idx)
     return false unless idx
-    browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-    browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    retry_count = 0
+    begin
+      browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
+      browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    rescue Watir::Wait::TimeoutError => e
+      retry_count += 1
+      if retry_count <= 3
+        puts "削除処理retryします。(#{retry_count}回目)"
+        retry
+      else
+        p '削除処理でエラーが発生しました。'
+        p e.class
+        p e.message
+        raise
+      end
+    end
     return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
@@ -46,7 +60,7 @@ class ItemRegister
     rescue Watir::Wait::TimeoutError => e
       retry_count += 1
       if retry_count <= 3
-        puts "retryします。 (#{retry_count}回目)"
+        puts "#{word}:retryします。 (#{retry_count}回目)"
         retry
       else
         p 'ボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
@@ -143,8 +157,22 @@ class ItemRegister
         target.scroll.to
         # deleteした結果がうまくいったかで既削除、売れ済を判断できる
         if self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
-          RakumaBrowser.goto_new(browser)
-          self.regist(browser, item)
+          retry_count = 0
+          begin
+            RakumaBrowser.goto_new(browser)
+            self.regist(browser, item)
+          rescue Watir::Exception::ObjectDisabledException => e
+            retry_count += 1
+            if retry_count <= 3
+              puts "出品するボタンの押下タイムアウト:retryします。 (#{retry_count}回目)"
+              retry
+            else
+              p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
+              p e.class
+              p e.message
+              raise
+            end
+          end      
           puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
           RakumaBrowser.goto_sell(browser)
         else
