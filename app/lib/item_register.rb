@@ -27,16 +27,28 @@ class ItemRegister
   def self.delete(browser, item, idx)
     return false unless idx
     retry_count = 0
+    retry_max = 5
     begin
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
       browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
     rescue Watir::Wait::TimeoutError => e
       retry_count += 1
-      if retry_count <= 3
-        puts "削除処理retryします。(#{retry_count}回目)"
+      if retry_count <= retry_max
+        puts "削除処理タイムアウトretryします。(#{retry_count}回目)"
         retry
       else
-        p '削除処理でエラーが発生しました。'
+        p '削除処理でタイムアウトエラーが発生しました。'
+        p e.class
+        p e.message
+        raise
+      end
+    rescue Watir::Exception::UnknownObjectException => e
+      retry_count += 1
+      if retry_count <= retry_max
+        puts "削除処理未知のエラーretryします。(#{retry_count}回目)"
+        retry
+      else
+        p '削除処理で未知のエラーが発生しました。'
         p e.class
         p e.message
         raise
