@@ -194,8 +194,12 @@ class ItemRegister
               puts "出品するボタンの押下タイムアウト:retryします。 (#{retry_count}回目)"
               RakumaBrowser.exit(browser)
               browser = RakumaBrowser.start_up
+
+              RakumaBrowser.goto_sell(browser)
+              first_item_title = browser.div(id: 'selling-container').div(class: 'media').first.element(class: 'media-heading').text
+
               RakumaBrowser.goto_new(browser)
-              retry
+              retry unless item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
             else
               p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
               p e.class
