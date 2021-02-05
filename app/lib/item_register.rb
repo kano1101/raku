@@ -54,6 +54,21 @@ class ItemRegister
         raise
       end
     end
+    retry_count = 0
+    begin
+      browser.wait
+    rescue Watir::Wait::TimeoutError => e
+      retry_count += 1
+      if retry_count <= retry_max
+        puts "削除処理後のwaitでタイムアウトretryします。(#{retry_count}回目)"
+        retry
+      else
+        p '削除処理後のwaitでタイムアウトエラーが発生しました。'
+        p e.class
+        p e.message
+        raise
+      end
+    end
     return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
@@ -169,14 +184,17 @@ class ItemRegister
         target.scroll.to
         # deleteした結果がうまくいったかで既削除、売れ済を判断できる
         if self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
+          RakumaBrowser.goto_new(browser)
           retry_count = 0
           begin
-            RakumaBrowser.goto_new(browser)
             self.regist(browser, item)
           rescue Watir::Exception::ObjectDisabledException => e
             retry_count += 1
             if retry_count <= 3
               puts "出品するボタンの押下タイムアウト:retryします。 (#{retry_count}回目)"
+              RakumaBrowser.exit(browser)
+              browser = RakumaBrowser.start_up
+              RakumaBrowser.goto_new(browser)
               retry
             else
               p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
