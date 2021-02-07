@@ -54,6 +54,21 @@ class ItemRegister
         raise
       end
     end
+    retry_count = 0
+    begin
+      browser.wait
+    rescue Watir::Wait::TimeoutError => e
+      retry_count += 1
+      if retry_count <= retry_max
+        puts "削除処理後のwaitでタイムアウトretryします。(#{retry_count}回目)"
+        retry
+      else
+        p '削除処理後のwaitでタイムアウトエラーが発生しました。'
+        p e.class
+        p e.message
+        raise
+      end
+    end
     return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
     true
   end
@@ -136,6 +151,10 @@ class ItemRegister
     # related_size_group_ids
     self.exe_query_selector(browser, 'select', 'request_required', item)
 
+    self.decide(browser, item)
+  end
+
+  def self.decide(browser, item)
     self.wait_and_button_click(browser, 'confirm', item)
     self.wait_and_button_click(browser, 'submit', item)
   end
@@ -169,24 +188,52 @@ class ItemRegister
         target.scroll.to
         # deleteした結果がうまくいったかで既削除、売れ済を判断できる
         if self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
+          RakumaBrowser.goto_new(browser)
           retry_count = 0
           begin
-            RakumaBrowser.goto_new(browser)
             self.regist(browser, item)
           rescue Watir::Exception::ObjectDisabledException => e
             retry_count += 1
             if retry_count <= 3
-              puts "出品するボタンの押下タイムアウト:retryします。 (#{retry_count}回目)"
-              retry
+              puts "出品するボタンの押下タイムアウト:retry処理を開始します。 (#{retry_count}回目)"
+              # RakumaBrowser.exit(browser)
+              # browser = RakumaBrowser.start_up
+
+              RakumaBrowser.goto_sell(browser)
+              first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
+
+              RakumaBrowser.goto_new(browser)
+              unless item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
+                retry
+              else
+                puts 'retryする必要がなかったので次へ進みます。'
+                RakumaBrowser.goto_sell(browser)
+              end
             else
               p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
               p e.class
               p e.message
               raise
             end
-          end      
-          puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
-          RakumaBrowser.goto_sell(browser)
+          else
+            retry_count = 0
+            begin
+              RakumaBrowser.goto_sell(browser)
+              puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
+            rescue Selenium::WebDriver::Error::UnexpectedAlertOpenError => e
+              retry_count += 1
+              if retry_count <= 3
+                puts '「出品に失敗しました。」の出るエラーが発生。ボタン押下処理し直します。(#{retry_count})回目)"'
+                self.decide(browser, item)
+                retry
+              else
+                p '「出品に失敗しました。」の出るエラーが発生しました。再出品が実行できているか確認してください。'
+                p e.class
+                p e.message
+                raise
+              end
+            end
+          end
         else
           puts "skip (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
         end
