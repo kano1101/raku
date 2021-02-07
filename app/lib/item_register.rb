@@ -211,6 +211,17 @@ class ItemRegister
               p e.message
               raise
             end
+          rescue Net::ReadTimeout => e
+            retry_count += 1
+            if retry_count <= 3
+              puts "Net::ReadTimeoutエラー発生:retryします（#{retry_count}回目）"
+              retry
+            else
+              puts "Net::ReadTimeoutエラーで失敗。再出品が実行できているか確認してください。"
+              p e.class
+              p e.message
+              raise
+            end
           else
             retry_count = 0
             begin
