@@ -223,7 +223,7 @@ class ItemRegister
             rescue Selenium::WebDriver::Error::UnexpectedAlertOpenError => e
               retry_count += 1
               if retry_count <= 3
-                puts '「出品に失敗しました。」の出るエラーが発生。ボタン押下処理し直します。(#{retry_count})回目)"'
+                puts "「出品に失敗しました。」の出るエラーが発生。ボタン押下処理し直します。(#{retry_count})回目)"
                 self.decide(browser, item)
                 retry
               else
