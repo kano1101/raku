@@ -151,6 +151,10 @@ class ItemRegister
     # related_size_group_ids
     self.exe_query_selector(browser, 'select', 'request_required', item)
 
+    self.decide(browser, item)
+  end
+
+  def self.decide(browser, item)
     self.wait_and_button_click(browser, 'confirm', item)
     self.wait_and_button_click(browser, 'submit', item)
   end
@@ -191,24 +195,45 @@ class ItemRegister
           rescue Watir::Exception::ObjectDisabledException => e
             retry_count += 1
             if retry_count <= 3
-              puts "出品するボタンの押下タイムアウト:retryします。 (#{retry_count}回目)"
-              RakumaBrowser.exit(browser)
-              browser = RakumaBrowser.start_up
+              puts "出品するボタンの押下タイムアウト:retry処理を開始します。 (#{retry_count}回目)"
+              # RakumaBrowser.exit(browser)
+              # browser = RakumaBrowser.start_up
 
               RakumaBrowser.goto_sell(browser)
-              first_item_title = browser.div(id: 'selling-container').div(class: 'media').first.element(class: 'media-heading').text
+              first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
 
               RakumaBrowser.goto_new(browser)
-              retry unless item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
+              unless item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
+                retry
+              else
+                puts 'retryする必要がなかったので次へ進みます。'
+                RakumaBrowser.goto_sell(browser)
+              end
             else
               p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
               p e.class
               p e.message
               raise
             end
-          end      
-          puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
-          RakumaBrowser.goto_sell(browser)
+          else
+            retry_count = 0
+            begin
+              RakumaBrowser.goto_sell(browser)
+              puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
+            rescue Selenium::WebDriver::Error::UnexpectedAlertOpenError => e
+              retry_count += 1
+              if retry_count <= 3
+                puts '「出品に失敗しました。」の出るエラーが発生。ボタン押下処理し直します。(#{retry_count})回目)"'
+                self.decide(browser, item)
+                retry
+              else
+                p '「出品に失敗しました。」の出るエラーが発生しました。再出品が実行できているか確認してください。'
+                p e.class
+                p e.message
+                raise
+              end
+            end
+          end
         else
           puts "skip (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
         end
