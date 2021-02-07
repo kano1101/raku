@@ -195,19 +195,15 @@ class ItemRegister
           rescue Watir::Exception::ObjectDisabledException => e
             retry_count += 1
             if retry_count <= 3
-              puts "出品するボタンの押下タイムアウト:retry処理を開始します。 (#{retry_count}回目)"
-              # RakumaBrowser.exit(browser)
-              # browser = RakumaBrowser.start_up
-
+              puts "出品するボタンの押下タイムアウト:必要に応じてretry処理を行います。 (#{retry_count}回目)"
               RakumaBrowser.goto_sell(browser)
               first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
 
-              RakumaBrowser.goto_new(browser)
               unless item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
+                RakumaBrowser.goto_new(browser)
                 retry
               else
                 puts 'retryする必要がなかったので次へ進みます。'
-                RakumaBrowser.goto_sell(browser)
               end
             else
               p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
