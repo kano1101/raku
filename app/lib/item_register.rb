@@ -172,6 +172,7 @@ class ItemRegister
     # 「出品した商品」ページを開いて
     RakumaBrowser.goto_sell(browser)
     items.each do |item|
+
       # 中断したい場合
       self.exit_if_finishing
 
@@ -196,10 +197,7 @@ class ItemRegister
             retry_count += 1
             if retry_count <= 3
               puts "出品するボタンの押下タイムアウト:必要に応じてretry処理を行います。 (#{retry_count}回目)"
-              RakumaBrowser.goto_sell(browser)
-              first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
-
-              unless item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
+              unless RakumaBrowser.already_relisted?(browser, item) # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
                 RakumaBrowser.goto_new(browser)
                 retry
               else
@@ -236,7 +234,8 @@ class ItemRegister
       else
         puts "失敗 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたがリストにないため削除できませんでした。"
       end
+      
     end
+    
   end
-  
 end

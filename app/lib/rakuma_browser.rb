@@ -8,17 +8,37 @@ class RakumaBrowser
   
   USER_DATA_DIR = %W[--user-data-dir=./UserData/]
   def self.wake_up
-    browser = Watir::Browser.new :chrome, switches: USER_DATA_DIR
+    # browser = Watir::Browser.new :chrome, switches: USER_DATA_DIR
+    # goto_mypage(browser)
+    # browser
+    client = Selenium::WebDriver::Remote::Http::Default.new
+    client.read_timeout = 600
+    client.open_timeout = 600
+    browser =  Watir::Browser.new :chrome, switches: USER_DATA_DIR, :http_client => client
     goto_mypage(browser)
     browser
   end
   
   def self.goto_url(browser, url)
-    browser.goto(url)
+    retry_count = 0
     begin
-      browser.wait
-    rescue Watir::Wait::TimeoutError
-      retry
+      browser.goto(url)
+      begin
+        browser.wait
+      rescue Watir::Wait::TimeoutError
+        retry
+      end
+    rescue Net::ReadTimeout => e
+      retry_count += 1
+      if retry_count <= 3
+        puts "Net::ReadTimeoutエラー発生:retryします。（#{retry_count}回目）"
+        retry
+      else
+        puts "Net::ReadTimeoutエラーで失敗。再出品が実行できているか確認してください。"
+        p e.class
+        p e.message
+        raise
+      end
     end
   end
   
@@ -144,4 +164,14 @@ class RakumaBrowser
     end
   end
 
+  def self.already_relisted?(browser, item)
+    self.goto_sell(browser)
+    first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
+
+    is_already = item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
+    self.goto_new(browser)
+
+    is_already
+  end
+  
 end
