@@ -61,21 +61,8 @@ class ItemRegister
   end
 
   def self.regist(browser, item)
-
-    script_parts = [
-      { type: 'input'  , key: 'category_id' },
-      { type: 'input'  , key: 'brand_id' },
-      { type: 'select' , key: 'status' },
-      { type: 'input'  , key: 'sell_price' },
-      { type: 'select' , key: 'carriage' },
-      { type: 'input'  , key: 'delivery_method' },
-      { type: 'select' , key: 'delivery_data' },
-      { type: 'select' , key: 'delivery_area' },
-      { type: 'select' , key: 'request_required' },
-    ]
-
     RakumaBrowser.goto_new(browser)
-
+    
     img_files = item.find_all do |key, value|
       key.include?('img')
     end.map do |key, value|
@@ -86,9 +73,11 @@ class ItemRegister
     for idx in 0...count do
       browser.file_field(id: 'image_tmp', index: idx).set(Dir.pwd + '/saved_img/' + img_files[idx])
     end
-
+    
     browser.input(id: 'name').send_keys(item['name']) # name
     browser.textarea(id: 'detail').send_keys(item['detail']) # detail
+    # parent_category_id
+    self.exe_query_selector(browser, 'input', 'category_id', item)
     unless item['size_id'] == 19999 # size_id
       browser.execute_script <<~JS
         function make_hidden(name, value) {
@@ -103,14 +92,27 @@ class ItemRegister
       JS
       self.exe_query_selector(browser, 'input', 'size_id', item)
     end
-
-    script_parts.each do |part|
-      self.exe_query_selector(browser, part[:type], part[:key], item)
-    end
-
+    self.exe_query_selector(browser, 'input', 'brand_id', item)
+    # informal_brand_id
+    self.exe_query_selector(browser, 'select', 'status', item)
+    # origin_price
+    self.exe_query_selector(browser, 'input', 'sell_price', item)
+    # transaction_status
+    self.exe_query_selector(browser, 'select', 'carriage', item)
+    self.exe_query_selector(browser, 'input', 'delivery_method', item)
+    self.exe_query_selector(browser, 'select', 'delivery_date', item)
+    self.exe_query_selector(browser, 'select', 'delivery_area', item)
+    # open_flag
+    # sold_out_flag
+    # created_at
+    # updated_at
     self.exe_inner_text(browser, 'category_name', item) # category_name
+    # self.exe_inner_text(browser, 'size_name', item) unless item['size_id'] == 19999 # size_name # 不要
     self.exe_inner_text(browser, 'brand_name', item) # brand_name
-    
+    # delivery_method_name
+    # related_size_group_ids
+    self.exe_query_selector(browser, 'select', 'request_required', item)
+
     self.decide(browser, item)
   end
 
@@ -182,8 +184,8 @@ class ItemRegister
         end
       end
 
-      puts "再出品成功 : [#{item['name']}]"
-
+      puts "再出品成功 : [#{item['name']}]]"
+      
     end # items.each do
   end # def self.relist
 end
