@@ -12,8 +12,8 @@ class RakumaBrowser
     # goto_mypage(browser)
     # browser
     client = Selenium::WebDriver::Remote::Http::Default.new
-    client.read_timeout = 600
-    client.open_timeout = 600
+    client.read_timeout = 120
+    client.open_timeout = 120
     browser =  Watir::Browser.new :chrome, switches: USER_DATA_DIR, :http_client => client
     goto_mypage(browser)
     browser
