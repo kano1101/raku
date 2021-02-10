@@ -27,10 +27,21 @@ class ItemRegister
   def self.delete(browser, item, idx)
     return false unless idx
     retry_count = 0
-    retry_max = 5
+    retry_max = 10
     begin
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
       browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    rescue Selenium::WebDriver::Error::NoSuchAlertError => e
+      retry_count += 1
+      if retry_count <= retry_max
+        puts "削除処理アラートのエラー。retryします。(#{retry_count}回目)"
+        retry
+      else
+        p '削除処理でアラートのエラーが発生しました。'
+        p e.class
+        p e.message
+        raise
+      end
     rescue Watir::Wait::TimeoutError => e
       retry_count += 1
       if retry_count <= retry_max
@@ -86,7 +97,7 @@ class ItemRegister
       browser.wait_while(timeout: 60) { |b| b.button(:id => word).present? }
     rescue Watir::Wait::TimeoutError => e
       retry_count += 1
-      if retry_count <= 3
+      if retry_count <= 5
         puts "#{word}:retryします。 (#{retry_count}回目)"
         retry
       else
