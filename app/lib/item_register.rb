@@ -51,6 +51,7 @@ class ItemRegister
   # 削除に成功するとtrueが返る
   def self.delete(browser, idx, retry_max = 10)
     return false unless idx
+    RakumaBrowser.goto_sell(browser)
     retry_max.times_retry do
       browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
       browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
@@ -121,17 +122,17 @@ class ItemRegister
     self.wait_and_button_click(browser, 'submit', item)
   end
   
-  def self.not_deleted?(browser, item)
+  def self.already_deleted?(browser, item)
     RakumaBrowser.goto_sell(browser)
     idx = self.open_list_and_get_item_index(browser, item)
-    !!idx
+    !idx
   end
 
-  def self.not_registed?(browser, item)
+  def self.already_registed?(browser, item)
     RakumaBrowser.goto_sell(browser)
     first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
     is_already = item['name'] == first_item_title
-    !is_already
+    is_already
   end
   
   def self.open_list_and_get_item_index(browser, item)
@@ -172,15 +173,21 @@ class ItemRegister
       
       # 商品削除
       retry_max.times_retry do
-        if self.not_deleted?(browser, item)
+        begin
           self.delete(browser, idx)
+        rescue
+          break if self.already_deleted?(browser, item)
+          raise
         end
       end
 
       # 再出品実行
       retry_max.times_retry do
-        if self.not_registed?(browser, item) # 成功ならエラーながらに再出品自体はうまくいっているのでリトライしない
+        begin
           self.regist(browser, item)
+        rescue
+          break if self.already_registed?(browser, item) # 成功ならエラーながらに再出品自体はうまくいっているのでリトライしない
+          raise
         end
       end
 
