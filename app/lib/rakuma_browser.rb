@@ -129,6 +129,13 @@ class RakumaBrowser
     end
   end
 
+  def self.open_list(browser)
+    # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
+    self.wait_sell_page_starting(browser)
+    # 「続きを見る」全展開する
+    self.next_button_all_open(browser)
+  end
+
   # 「続きを見る」全展開
   def self.next_button_all_open(browser)
     media_count = Best.new(0)
