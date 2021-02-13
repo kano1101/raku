@@ -3,10 +3,13 @@ require 'yaml'
 require 'watir'
 require_relative 'main'
 require_relative 'rblib/best'
+require_relative 'rblib/times_retry'
 
 class RakumaBrowser
   
+  using TimesRetry
   USER_DATA_DIR = %W[--user-data-dir=./UserData/]
+  
   def self.wake_up
     # browser = Watir::Browser.new :chrome, switches: USER_DATA_DIR
     # goto_mypage(browser)
@@ -18,45 +21,35 @@ class RakumaBrowser
     goto_mypage(browser)
     browser
   end
-  
-  def self.goto_url(browser, url)
-    retry_count = 0
-    begin
-      browser.goto(url)
-      begin
-        browser.wait
-      rescue Watir::Wait::TimeoutError
-        retry
-      end
-    rescue Net::ReadTimeout => e
-      retry_count += 1
-      if retry_count <= 3
-        puts "Net::ReadTimeoutエラー発生:retryします。（#{retry_count}回目）"
-        retry
-      else
-        puts "Net::ReadTimeoutエラーで失敗。再出品が実行できているか確認してください。"
-        p e.class
-        p e.message
-        raise
-      end
+
+  def self.wait(browser, retry_max = 5)
+    retry_max.times_retry do
+      browser.wait
     end
+  end
+
+  def self.goto_url(browser, url, retry_max = 5)
+    retry_max.times_retry do
+      browser.goto(url)
+    end
+    self.wait(browser, retry_max)
   end
   
   def self.goto_mypage(browser)
     mypage_url = 'https://fril.jp/mypage'
-    goto_url(browser, mypage_url)
+    self.goto_url(browser, mypage_url)
   end
   def self.goto_login(browser)
     login_url = 'https://fril.jp/users/sign_in'
-    goto_url(browser, login_url)
+    self.goto_url(browser, login_url)
   end
   def self.goto_sell(browser)
     sell_url = 'https://fril.jp/sell'
-    goto_url(browser, sell_url)
+    self.goto_url(browser, sell_url)
   end
   def self.goto_new(browser)
     new_url = 'https://fril.jp/item/new'
-    goto_url(browser, new_url)
+    self.goto_url(browser, new_url)
   end
 
   def self.auto_close(browser)
@@ -119,15 +112,6 @@ class RakumaBrowser
     self.div_selling(browser).nav(class: 'pagination_more', index: idx)
   end
 
-  # TODO : うまく動作していない可能性あり
-  # def self.has_page_load_completed(browser)
-  #   browser.execute_script("return document.readyState;") == "complete"
-  # end
-  # def self.wait_until_page_load_completed(browser)
-  #   browser.wait_until(timeout: 3600) do
-  #     self.has_page_load_completed(browser) # ページの読み込みが完了したら真が返るので次へ進むことができます
-  #   end
-  # end
   def self.wait_for_continuity(browser, opened_count)
     continuity = nil
     browser.wait_until(timeout: 3600) do
@@ -143,6 +127,13 @@ class RakumaBrowser
       divs_count = self.divs_media_count(browser)
       best.overwrite_if_over(divs_count)
     end
+  end
+
+  def self.open_list(browser)
+    # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
+    self.wait_sell_page_starting(browser)
+    # 「続きを見る」全展開する
+    self.next_button_all_open(browser)
   end
 
   # 「続きを見る」全展開
@@ -164,18 +155,4 @@ class RakumaBrowser
     end
   end
 
-  def self.already_relisted?(browser, item)
-    self.exit(browser)
-    browser = self.start_up
-
-    self.goto_sell(browser)
-
-    first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
-
-    is_already = item['name'] == first_item_title # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
-    self.goto_new(browser)
-
-    is_already
-  end
-  
 end

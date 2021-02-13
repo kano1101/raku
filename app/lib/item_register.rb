@@ -3,128 +3,101 @@ require 'watir'
 require_relative 'main'
 require_relative 'csv_writer'
 require_relative 'rakuma_browser'
+require_relative 'rblib/times_retry'
 
 class ItemRegister
-  
+
+  using TimesRetry
+
+  # 見つからなければnil
   def self.match_index(str_array, str)
     str_array.index { |e_str| e_str == str }
   end
-  
-  # 念のため入る前にページが完全にロードされた状態にしておいてください。
+
+  # idを見てに商品の位置を整数で返す
+  # 入る前にページが完全にロードされた状態にしておいてください。
   def self.item_index(browser, item)
-    # RakumaBrowser.wait_page_load_complete(browser)
     scan_id_array = browser.html.scan(/gaConfirm\('(.+?)'\);/).map { |wrapped| wrapped[0] }
     id = item['id'].to_s
     match_index(scan_id_array, id)
   end
 
-  def self.is_item_deleted(browser)
+  def self.delete_failure?(browser)
+    RakumaBrowser.wait(browser)
     /<title>404  | お探しのページは見つかりませんでした<\/title>/ =~ browser.html
+  end
+  
+  def self.regist_failure?(browser)
+    RakumaBrowser.wait(browser)
+    /<title>出品する｜ラクマ<\/title>/ =~ browser.html
+  end
+  
+  def self.exe_query_selector(browser, input_or_select, item_key, item)
+    browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
+  end
+  def self.exe_inner_text(browser, item_key, item)
+    browser.execute_script(%!document.getElementById('%s').innerText = '%s'! % [item_key, item[item_key]]) # category_name
+  end
+
+  def self.wait_and_button_click(browser, word, item, retry_max = 10)
+    # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
+    $main.wait_a_minute(browser, word, item)
+    begin
+      browser.button(id: word).click
+      browser.wait_while(timeout: 60) { |b| b.button(id: word).present? }
+    rescue
+      puts "#{word}ボタン押下処理ミス"
+      raise
+    end
+    RakumaBrowser.wait(browser)
   end
   
   # 商品が存在しない(売れたまたは削除された)場合はnil、idxが不正であればfalseを返すので、スキップ対応してください
   # idxに正の整数以外を入れると動作しません
-  def self.delete(browser, item, idx)
-    return false unless idx
-    retry_count = 0
-    retry_max = 10
-    begin
-      browser.a(id: 'ga_click_delete', index: idx).fire_event :onclick
-      browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
-    rescue Selenium::WebDriver::Error::NoSuchAlertError => e
-      retry_count += 1
-      if retry_count <= retry_max
-        puts "削除処理アラートのエラー。retryします。(#{retry_count}回目)"
-        retry
-      else
-        p '削除処理でアラートのエラーが発生しました。'
-        p e.class
-        p e.message
-        raise
-      end
-    rescue Watir::Wait::TimeoutError => e
-      retry_count += 1
-      if retry_count <= retry_max
-        puts "削除処理タイムアウトretryします。(#{retry_count}回目)"
-        retry
-      else
-        p '削除処理でタイムアウトエラーが発生しました。'
-        p e.class
-        p e.message
-        raise
-      end
-    rescue Watir::Exception::UnknownObjectException => e
-      retry_count += 1
-      if retry_count <= retry_max
-        puts "削除処理未知のエラーretryします。(#{retry_count}回目)"
-        retry
-      else
-        p '削除処理で未知のエラーが発生しました。'
-        p e.class
-        p e.message
-        raise
-      end
-    end
-    retry_count = 0
-    begin
-      browser.wait
-    rescue Watir::Wait::TimeoutError => e
-      retry_count += 1
-      if retry_count <= retry_max
-        puts "削除処理後のwaitでタイムアウトretryします。(#{retry_count}回目)"
-        retry
-      else
-        p '削除処理後のwaitでタイムアウトエラーが発生しました。'
-        p e.class
-        p e.message
-        raise
-      end
-    end
-    return nil if self.is_item_deleted(browser) # <title>タグを確認し、削除失敗ならfalseを返す
+  # 削除に成功するとtrueが返る
+  def self.delete(browser, item, retry_max = 10)
+    # 商品リストの展開とindex取得
+    RakumaBrowser.goto_sell(browser)
+    RakumaBrowser.open_list(browser)
+    idx = item_index(browser, item)
+    return nil unless idx
+
+    # 再出品対象までスクロール
+    target = browser.div(id: 'selling-container').divs(class: 'media')[idx]
+    target.scroll.to
+
+    # 削除
+    browser.as(id: 'ga_click_delete')[idx].fire_event :onclick
+    browser.alert.wait_until(timeout: 30, &:present?).ok # ページの遷移先の<title>タグを見ると成功したかがわかる
+    RakumaBrowser.wait(browser)
+
+    # 削除できたかチェック
+    is_failure = self.delete_failure?(browser) # <title>タグを確認し、削除失敗ならfalseを返す
+    return nil if is_failure
+
+    # 削除成功
     true
   end
 
-  def self.exe_query_selector(browser, input_or_select, item_key, item)
-    browser.execute_script(%!document.querySelector('%s[name="item[%s]"]').value='%s'! % [input_or_select, item_key, item[item_key]])
-  end
-
-  def self.wait_and_button_click(browser, word, item)
-    # ここに入る前にScheduler.add_scheduleによってitem['confirm']とitem['submit']にTimeオブジェクトが追加されてある
-    $main.wait_a_minute(browser, word, item)
-    retry_count = 0
-    begin
-      browser.button(:id => word).click
-      browser.wait_while(timeout: 60) { |b| b.button(:id => word).present? }
-    rescue Watir::Wait::TimeoutError => e
-      retry_count += 1
-      if retry_count <= 5
-        puts "#{word}:retryします。 (#{retry_count}回目)"
-        retry
-      else
-        p 'ボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
-        p e.class
-        p e.message
-        p word
-        p item
-        raise
-      end
-    end
-    browser.wait
-  end
-  
   def self.regist(browser, item)
+    RakumaBrowser.goto_new(browser)
+
+    # 画像情報の抽出
     img_files = item.find_all do |key, value|
       key.include?('img')
     end.map do |key, value|
       value
     end
+
+    # 画像をセット
     count = img_files.compact.count
     for idx in 0...count do
       browser.file_field(id: 'image_tmp', index: idx).set(Dir.pwd + '/saved_img/' + img_files[idx])
     end
-    
-    browser.input(:id => 'name').send_keys(item['name']) # name
-    browser.textarea(:id => 'detail').send_keys(item['detail']) # detail
+
+    # 各フォームへ値をセット
+    browser.input(id: 'name').send_keys(item['name']) # name
+    browser.textarea(id: 'detail').send_keys(item['detail']) # detail
     # parent_category_id
     self.exe_query_selector(browser, 'input', 'category_id', item)
     unless item['size_id'] == 19999 # size_id
@@ -155,19 +128,41 @@ class ItemRegister
     # sold_out_flag
     # created_at
     # updated_at
-    browser.execute_script(%!document.getElementById('category_name').innerText = "#{item['category_name']}"!) # category_name
-    # browser.execute_script(%!document.getElementById('size_name').innerText = "#{item['size_name']}"!) unless item['size_id'] == 19999 # size_name # 不要
-    browser.execute_script(%!document.getElementById('brand_name').innerText = "#{item['brand_name']}"!) # brand_name
+    self.exe_inner_text(browser, 'category_name', item) # category_name
+    # self.exe_inner_text(browser, 'size_name', item) unless item['size_id'] == 19999 # size_name # 不要
+    self.exe_inner_text(browser, 'brand_name', item) # brand_name
     # delivery_method_name
     # related_size_group_ids
     self.exe_query_selector(browser, 'select', 'request_required', item)
 
+    # 確認、出品するボタンの押下処理
     self.decide(browser, item)
+
+    # 出品できたかチェック
+    is_failure = self.regist_failure?(browser)
+    return nil if is_failure
+
+    # 出品成功
+    true
   end
 
   def self.decide(browser, item)
     self.wait_and_button_click(browser, 'confirm', item)
     self.wait_and_button_click(browser, 'submit', item)
+  end
+  
+  def self.already_deleted?(browser, item)
+    RakumaBrowser.goto_sell(browser)
+    RakumaBrowser.open_list(browser)
+    idx = self.item_index(browser, item)
+    !idx
+  end
+
+  def self.already_registed?(browser, item)
+    RakumaBrowser.goto_sell(browser)
+    first_item_title = browser.div(id: 'selling-container').divs(class: 'media').first.element(class: 'media-heading').text
+    is_already = item['name'] == first_item_title
+    is_already
   end
   
   def self.exit_if_finishing
@@ -177,76 +172,44 @@ class ItemRegister
     end
   end
 
-  def self.relist(browser, items)
+  def self.relist(browser, items, retry_max = 10)
     puts '正しく終了する場合はEnterキーを押して少しお待ちください。'
     
-    # 「出品した商品」ページを開いて
-    RakumaBrowser.goto_sell(browser)
-    items.each do |item|
-
+    items.each.with_index do |item, n|
+      
       # 中断したい場合
       self.exit_if_finishing
 
-      # ページの評価が早すぎて古いページを評価してしまう可能性がある問題をつぶす
-      RakumaBrowser.wait_sell_page_starting(browser)
-
-      # 「続きを見る」全展開する
-      RakumaBrowser.next_button_all_open(browser)
-
-      # itemの再出品
-      idx = self.item_index(browser, item) # リストにない場合はnilが返る（内部的にはArray#index仕様による）
-      if idx
-        target = browser.div(id: 'selling-container').div(class: 'media', index: idx)
-        target.scroll.to
-        # deleteした結果がうまくいったかで既削除、売れ済を判断できる
-        if self.delete(browser, item, idx) # 普通に削除（ただしidxはロード済みでなくてはならない。正の整数を入れること）
-          RakumaBrowser.goto_new(browser)
-          retry_count = 0
-          begin
-            self.regist(browser, item)
-          rescue Watir::Exception::ObjectDisabledException => e
-            retry_count += 1
-            if retry_count <= 3
-              puts "出品するボタンの押下タイムアウト:必要に応じてretry処理を行います。 (#{retry_count}回目)"
-              unless RakumaBrowser.already_relisted?(browser, item) # 一致するならエラーながらに再出品自体はうまくいっているのでリトライしない
-                RakumaBrowser.goto_new(browser)
-                retry
-              else
-                puts 'retryする必要がなかったので次へ進みます。'
-              end
-            else
-              p '出品するボタンの押下処理でエラーが発生しました。再出品が実行できているか確認してください。'
-              p e.class
-              p e.message
-              raise
-            end
-          else
-            retry_count = 0
-            begin
-              RakumaBrowser.goto_sell(browser)
-              puts "成功 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の再出品が完了しました。"
-            rescue Selenium::WebDriver::Error::UnexpectedAlertOpenError => e
-              retry_count += 1
-              if retry_count <= 3
-                puts "「出品に失敗しました。」の出るエラーが発生。ボタン押下処理し直します。(#{retry_count})回目)"
-                self.decide(browser, item)
-                retry
-              else
-                p '「出品に失敗しました。」の出るエラーが発生しました。再出品が実行できているか確認してください。'
-                p e.class
-                p e.message
-                raise
-              end
-            end
-          end
-        else
-          puts "skip (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたが売れたまたはすでに削除されていました。"
+      # 商品削除
+      delete_status = false
+      retry_max.times_retry do
+        begin
+          delete_status = self.delete(browser, item)
+        rescue
+          break if self.already_deleted?(browser, item)
+          raise
         end
-      else
-        puts "失敗 (#{items.index(item) + 1}/#{items.count}): [" + item['name'] + "]の商品の再出品を試みましたがリストにないため削除できませんでした。"
       end
+
+      # リストにそもそも存在しなかったら出品処理しない
+      unless delete_status
+        puts "削除済skip : (#{n + 1}/#{items.count}) : [#{item['name']}]"
+        next
+      end
+
+      # 再出品実行
+      retry_max.times_retry do
+        begin
+          regist_status = self.regist(browser, item)
+          raise RuntimeError, '出品に失敗しましたアラート発生' unless regist_status
+        rescue
+          break if self.already_registed?(browser, item) # 成功ならエラーながらに再出品自体はうまくいっているのでリトライしない
+          raise
+        end
+      end
+
+      puts "再出品成功 : (#{n + 1}/#{items.count}) : [#{item['name']}]"
       
-    end
-    
-  end
+    end # items.each do
+  end # def self.relist
 end
