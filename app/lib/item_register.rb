@@ -193,7 +193,7 @@ class ItemRegister
 
       # リストにそもそも存在しなかったら出品処理しない
       unless delete_status
-        puts "削除失敗   : (#{n}/#{items.count + 1}) : [#{item['name']}]"
+        puts "削除済skip : (#{n + 1}/#{items.count}) : [#{item['name']}]"
         next
       end
 
@@ -208,7 +208,7 @@ class ItemRegister
         end
       end
 
-      puts "再出品成功 : (#{n}/#{items.count + 1}) : [#{item['name']}]"
+      puts "再出品成功 : (#{n + 1}/#{items.count}) : [#{item['name']}]"
       
     end # items.each do
   end # def self.relist
